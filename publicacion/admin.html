@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Panel · XV años</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Great+Vibes&family=Jost:wght@300;400;500&display=swap">
+<style>
+:root{--rose:#d81b73;--bg:#ffe0ec;--card:#fff;--ink:#4a0f2e;--soft:#8a3a5e;--line:rgba(216,27,115,.25)}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{margin:0;background:linear-gradient(160deg,#ffe0ec,#ffc2da);color:var(--ink);font-family:Jost,system-ui,sans-serif;min-height:100vh;padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom)}
+h1{font-family:"Great Vibes",cursive;font-weight:400;font-size:2.6rem;color:var(--rose);margin:0}
+.wrap{max-width:1100px;margin:0 auto;padding:18px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:18px;box-shadow:0 10px 26px rgba(216,27,115,.15);margin-bottom:18px}
+.grid{display:grid;gap:18px;grid-template-columns:minmax(0,1fr);min-width:0}
+.card{min-width:0}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;margin-bottom:18px}
+.stat{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px;text-align:center}
+.stat b{display:block;font-size:1.8rem;color:var(--rose)}
+input,select,button{font:inherit;padding:9px 12px;border-radius:10px;border:1px solid var(--line);background:#fff;color:var(--ink)}
+button{cursor:pointer;background:linear-gradient(135deg,#ff4f9a,#d81b73);color:#fff;border:0}
+button.g{background:#fff;color:var(--rose);border:1px solid var(--rose)}
+.state{display:inline-block;padding:3px 9px;border-radius:20px;font-size:.8rem}
+.state.confirmado{background:#d9f7e4;color:#136b36}
+.state.pendiente{background:#fff0c8;color:#855a00}
+.state.rechazado{background:#fde0e0;color:#a11}
+.live-status{display:inline-flex;align-items:center;gap:8px;padding:6px 10px;border:1px solid currentColor;border-radius:20px;font-size:.82rem;font-weight:500;line-height:1}
+.live-status::before{content:"";width:9px;height:9px;border-radius:50%;background:currentColor}
+.live-status.is-live{background:#d9f7e4;color:#136b36}
+.live-status.is-connecting{background:#fff0c8;color:#855a00}
+.row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+.row input{flex:1;min-width:120px}
+.scroll{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:.92rem}
+th,td{text-align:left;padding:8px 6px;border-bottom:1px solid var(--line);white-space:nowrap}
+#modal{position:fixed;inset:0;background:rgba(74,15,46,.6);display:none;place-items:center;z-index:9;padding:20px}
+#modal.on{display:grid}
+#modal .card{text-align:center;margin:0}
+#login{position:relative;isolation:isolate;overflow:hidden;min-height:100vh;min-height:100svh;display:grid;place-items:center;padding:24px;background:radial-gradient(ellipse at 50% 0,rgba(255,255,255,.7),transparent 55%),linear-gradient(155deg,#ffeaf2,#f8cfe0)}
+#login::before,#login::after{content:"";position:absolute;z-index:-1;border:1px solid rgba(216,27,115,.14);border-radius:50%;pointer-events:none}
+#login::before{width:min(78vw,620px);aspect-ratio:1;top:-34%;left:-24%}
+#login::after{width:min(70vw,540px);aspect-ratio:1;right:-20%;bottom:-38%}
+#login form{display:grid;gap:10px;width:min(340px,100%)}
+.login-card{width:min(430px,100%)!important;margin:0;padding:34px 34px 30px;border-radius:26px;background:rgba(255,255,255,.94);box-shadow:0 24px 70px rgba(106,25,63,.18);text-align:left}
+.login-emblem{display:grid;place-items:center;width:62px;height:62px;margin:0 auto 6px;border:1px solid rgba(216,27,115,.34);border-radius:50%;background:radial-gradient(circle,#fff 0 58%,#fdeaf2 59%);box-shadow:inset 0 0 0 5px rgba(216,27,115,.06);color:var(--rose);font-family:Georgia,serif;font-size:1.35rem;letter-spacing:.08em}
+.login-kicker{margin:0;text-align:center;color:var(--soft);font-size:.72rem;font-weight:500;letter-spacing:.22em;text-transform:uppercase}
+.login-card h1{margin:0;text-align:center;font-size:3rem;line-height:1.15}
+.login-description{margin:0 0 12px;text-align:center;color:var(--soft);font-size:.92rem}
+.login-field{display:grid;gap:6px;color:var(--soft);font-size:.82rem;font-weight:500}
+.login-card input{width:100%;min-height:46px;border-radius:12px;background:#fffafd}
+.login-card input:focus-visible{outline:3px solid rgba(216,27,115,.2);border-color:var(--rose)}
+.login-submit{min-height:48px;margin-top:8px;border-radius:14px;font-weight:500;letter-spacing:.04em;box-shadow:0 8px 18px rgba(216,27,115,.2)}
+#lerr{min-height:1.2em;color:#b42345;text-align:center}
+.login-footnote{margin:0;text-align:center;color:#9a7585;font-size:.75rem}
+.tables-card{padding:24px;border-radius:22px}
+.tables-heading{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:20px}
+.tables-heading h3{margin:2px 0 4px;color:var(--ink);font-size:1.3rem}
+.tables-heading p{margin:0;color:var(--soft);font-size:.9rem;line-height:1.45}
+.tables-eyebrow{font-size:.7rem!important;font-weight:500;letter-spacing:.18em;text-transform:uppercase;color:var(--rose)!important}
+.tables-mark{display:grid;place-items:center;flex:none;width:52px;height:52px;border:1px solid var(--line);border-radius:16px;background:#fff6fa;color:var(--rose);font-family:Georgia,serif;font-size:1.25rem}
+.tables-form{display:grid;grid-template-columns:minmax(0,1fr) 120px auto;align-items:center;gap:10px;margin:0 0 18px;padding:14px;border:1px solid var(--line);border-radius:16px;background:linear-gradient(135deg,#fff8fb,#fff)}
+.tables-form input{min-width:0;min-height:42px}
+.tables-form button{min-height:42px;padding-inline:18px;white-space:nowrap}
+.tables-card .scroll{border:1px solid var(--line);border-radius:14px}
+.tables-card table{min-width:620px}
+.tables-card th{padding:11px 10px;background:#fff6fa;color:var(--soft);font-size:.72rem;font-weight:500;letter-spacing:.08em;text-transform:uppercase}
+.tables-card td{padding:11px 10px;vertical-align:middle}
+.tables-card tbody tr:hover{background:#fffafd}
+.tables-card tbody tr:last-child td{border-bottom:0}
+.tables-card select{min-width:120px}
+.capacity-cell{display:grid;gap:5px;min-width:92px}
+.capacity-cell progress{width:100%;height:6px;accent-color:var(--rose)}
+.tables-empty{text-align:center;color:var(--soft);padding:22px!important}
+@media(max-width:640px){
+  .wrap{padding:10px}
+  .card{padding:14px}
+  .login-card{padding:28px 22px 24px}
+  .tables-card{padding:18px}
+  .tables-heading{align-items:flex-start}
+  .tables-mark{width:44px;height:44px;border-radius:14px}
+  #app .wrap>.row:first-child{align-items:stretch!important;flex-direction:column}
+  #app .wrap>.row:first-child>span{display:flex;align-items:center;flex-wrap:wrap;gap:8px}
+  #app .wrap>.row:first-child>span button{flex:1 1 44%;min-height:44px}
+  .stats{grid-template-columns:repeat(2,minmax(0,1fr))}
+  #tf{grid-template-columns:minmax(0,1fr) 100px;gap:8px;padding:10px}
+  #gn{min-width:0}
+  #tn{grid-column:1/-1;min-width:0}
+  #gf button{grid-column:1/-1;min-height:44px}
+  #tf button{grid-column:1/-1;min-height:44px}
+  .scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
+  table{min-width:520px}
+}
+</style>
+</head>
+<body>
+<div id="login">
+  <form id="lf" class="card login-card">
+    <div class="login-emblem" aria-hidden="true">XV</div>
+    <p class="login-kicker">Panel privado · 2026</p>
+    <h1>Bienvenida</h1>
+    <p class="login-description">Administra las mesas y las invitaciones de la celebración.</p>
+    <label class="login-field" for="em">Correo electrónico
+      <input id="em" type="email" placeholder="tu-correo@ejemplo.com" required autocomplete="username">
+    </label>
+    <label class="login-field" for="pw">Contraseña
+      <input id="pw" type="password" placeholder="Escribe tu contraseña" required autocomplete="current-password">
+    </label>
+    <button class="login-submit">Entrar al panel</button>
+    <small id="lerr" role="alert" aria-live="polite"></small>
+    <p class="login-footnote">Acceso exclusivo para la organización</p>
+  </form>
+</div>
+
+<div id="app" hidden><div class="wrap">
+  <div class="row" style="justify-content:space-between;align-items:center"><h1>Invitados</h1><span><small id="lv" class="live-status is-connecting" role="status" aria-live="polite">Conectando…</small> <button class="g" id="csv">Exportar CSV</button> <button class="g" id="out">Salir</button></span></div>
+  <div class="stats" id="stats"></div>
+  <div class="grid">
+    <div class="card tables-card">
+      <div class="tables-heading">
+        <div><p class="tables-eyebrow">Organización del evento</p><h3>Mesas</h3><p>Asigna cada pase a una mesa. La capacidad se valida con el número de asistentes confirmados.</p></div>
+        <div class="tables-mark" aria-hidden="true">01</div>
+      </div>
+      <form class="tables-form" id="tf"><input id="tn" placeholder="Nombre (ej. Mesa 1)" required aria-label="Nombre de la mesa"><input id="tc" type="number" min="1" value="10" aria-label="Capacidad de la mesa"><button>Agregar mesa</button></form>
+      <div class="scroll"><table><thead><tr><th>Mesa</th><th>Capacidad</th><th>Asistentes / capacidad</th><th>Pases asignados</th><th></th></tr></thead><tbody id="tb"></tbody></table></div>
+    </div>
+    <div class="card"><h3 style="margin-top:0">Invitaciones</h3>
+      <p>La respuesta se guarda al confirmar. WhatsApp es opcional; el panel no puede verificar si el mensaje se envió.</p>
+      <form class="row" id="gf"><input id="gn" placeholder="Nombre de la invitación" required><button>Agregar invitación</button></form>
+      <div class="scroll"><table><thead><tr><th>Invitación</th><th>Estado</th><th>Asistentes</th><th>Mesa asignada</th><th>Enlace</th><th>QR</th><th></th></tr></thead><tbody id="gb"></tbody></table></div>
+    </div>
+  </div>
+</div></div>
+<div id="modal"><div class="card"><h1 id="mn" style="font-size:2rem"></h1><div id="mq" style="display:grid;place-items:center;margin:12px"></div><button class="g" id="mc">Cerrar</button></div></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script>
+const CFG = {url:"https://tsjnafzxbfdlohvybjng.supabase.co", key:"sb_publishable_CL9SC4i1eGEYrXj8rQdkzg_reW8RxfP", invitacion:new URL("index.html",location.href).href};
+const sb = supabase.createClient(CFG.url, CFG.key);
+const $ = id => document.getElementById(id), esc = s => String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+let G = [], T = [];
+const link = g => CFG.invitacion.split("?")[0]+"?t="+g.token;
+
+async function load(){
+  const [{data:guests,error:guestError},{data:tables,error:tableError}] = await Promise.all([
+    sb.from("guests").select("id,name,token,created_at,status,companions,attendee_names,table_id").order("created_at"),
+    sb.from("event_tables").select("id,name,capacity").order("name")
+  ]);
+  if(guestError){ alert("Error al cargar invitaciones: "+guestError.message); return; }
+  if(tableError){ alert("Error al cargar mesas: "+tableError.message); return; }
+  G = guests; T = tables; render();
+}
+function render(){
+  const confirmed = G.filter(g=>g.status==="confirmado");
+  $("stats").innerHTML = [["Invitaciones",G.length],["Confirmadas",confirmed.length],["Asistentes confirmados",confirmed.reduce((a,g)=>a+g.companions+1,0)],["Pendientes",G.filter(g=>g.status==="pendiente").length],["No asistirán",G.filter(g=>g.status==="rechazado").length]].map(([k,v])=>`<div class="stat"><b>${v}</b>${k}</div>`).join("");
+  const statusLabel = g => g.status==="confirmado" ? "Confirmada" : g.status==="rechazado" ? "No asistirá" : "Pendiente";
+  const occupancy = new Map(T.map(t=>[t.id,{attendees:0,passes:0}]));
+  G.forEach(g=>{const stats=occupancy.get(g.table_id);if(stats){if(g.status==="confirmado")stats.attendees+=Array.isArray(g.attendee_names)&&g.attendee_names.length?g.attendee_names.length:g.companions+1;stats.passes++;}});
+  $("tb").innerHTML = T.length ? T.map(t=>{const stats=occupancy.get(t.id);return `<tr><td>${esc(t.name)}</td><td>${t.capacity}</td><td><div class="capacity-cell"><span>${stats.attendees} de ${t.capacity}</span><progress max="${t.capacity}" value="${Math.min(stats.attendees,t.capacity)}"></progress></div></td><td>${stats.passes}</td><td><button class="g" data-a="dt" data-id="${t.id}" aria-label="Eliminar mesa ${esc(t.name)}">Eliminar</button></td></tr>`;}).join("") : `<tr><td class="tables-empty" colspan="5">Todavía no hay mesas. Agrega la primera arriba.</td></tr>`;
+  $("gb").innerHTML = G.map(g=>`<tr><td>${esc(g.name)}</td><td><span class="state ${g.status}">${statusLabel(g)}</span></td><td>${g.status==="confirmado"?(Array.isArray(g.attendee_names)&&g.attendee_names.length?g.attendee_names.length:g.companions+1):"—"}</td>
+    <td><select data-assignment="${g.id}" aria-label="Asignar mesa a ${esc(g.name)}"><option value="">Sin asignar</option>${T.map(t=>`<option value="${t.id}"${g.table_id===t.id?" selected":""}>${esc(t.name)}</option>`).join("")}</select></td>
+    <td><button class="g" data-a="cp" data-id="${g.id}">Copiar enlace</button></td>
+    <td><button class="g" data-a="qr" data-id="${g.id}">QR</button></td>
+    <td><button class="g" data-a="dg" data-id="${g.id}" aria-label="Eliminar invitación de ${esc(g.name)}">🗑</button></td></tr>`).join("");
+}
+async function run(p){ const {error} = await p; if(error){ alert(error.message); return; } await load(); }
+$("gf").onsubmit = e => { e.preventDefault(); run(sb.from("guests").insert({name:gn.value.trim()})); gn.value=""; };
+$("tf").onsubmit = e => { e.preventDefault(); run(sb.from("event_tables").insert({name:$("tn").value.trim(),capacity:+$("tc").value})); $("tn").value=""; };
+document.addEventListener("change",async e=>{
+  const select=e.target.closest("[data-assignment]");
+  if(!select) return;
+  const g=G.find(x=>x.id===select.dataset.assignment);
+  if(!g) return;
+  select.disabled=true;
+  try{
+    const {error}=await sb.rpc("assign_guest_table",{p_guest:g.id,p_table:select.value||null});
+    if(error) throw error;
+    await load();
+  }catch(error){
+    console.error("No se pudo asignar la mesa a la invitación.",error);
+    alert("No se pudo asignar la mesa: "+(error instanceof Error?error.message:String(error)));
+    await load();
+  }finally{select.disabled=false;}
+});
+document.addEventListener("click",e=>{ const b = e.target.closest("[data-a]"); if(!b||b.tagName==="SELECT"||b.type==="checkbox") return; const a = b.dataset.a;
+  if(a==="dt"){const t=T.find(x=>x.id===b.dataset.id);if(t&&confirm("¿Eliminar la mesa "+t.name+"?")) run(sb.from("event_tables").delete().eq("id",t.id));return;}
+  const g = G.find(x=>x.id===b.dataset.id);
+  if(!g) return;
+  if(a==="cp"){ navigator.clipboard.writeText(link(g)).then(()=>{ b.textContent = "Copiado"; setTimeout(()=>b.textContent="Copiar enlace",1200); }).catch(error=>{ console.error("No se pudo copiar el enlace.",error); alert("No se pudo copiar el enlace. Inténtalo de nuevo."); }); }
+  if(a==="qr"){ mn.textContent = g.name; mq.innerHTML = ""; new QRCode(mq,{text:link(g),width:220,height:220,colorDark:"#a3104f"}); modal.classList.add("on"); }
+  if(a==="dg" && confirm("¿Eliminar a "+g.name+"?")) run(sb.from("guests").delete().eq("id",g.id));
+});
+mc.onclick = () => modal.classList.remove("on");
+csv.onclick = () => { const r = [["Invitación","Estado","Asistentes","Mesa","Enlace"],...G.map(g=>[g.name,g.status,g.status==="confirmado"?(Array.isArray(g.attendee_names)&&g.attendee_names.length?g.attendee_names.length:g.companions+1):0,T.find(t=>t.id===g.table_id)?.name||"",link(g)])];
+  const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob(["\ufeff"+r.map(x=>x.map(v=>'"'+String(v).replace(/"/g,'""')+'"').join(",")).join("\n")],{type:"text/csv"})); a.download = "invitados-xv.csv"; a.click(); };
+let ch = null, tm;
+async function show(ok){ $("login").hidden = ok; $("app").hidden = !ok; if(ok){ load(); live(); } else if(ch){ sb.removeChannel(ch); ch = null; } }
+$("lf").onsubmit = async e => {
+  e.preventDefault();
+  const button = $("lf").querySelector("button");
+  button.disabled = true;
+  button.textContent = "Validando...";
+  $("lerr").textContent = "";
+  try{
+    const {data,error} = await sb.auth.signInWithPassword({email:$("em").value.trim(),password:$("pw").value});
+    if(error){
+      $("lerr").textContent = `No se pudo iniciar sesión: ${error.message}`;
+      return;
+    }
+    if(!data.session){
+      $("lerr").textContent = "Supabase no devolvió una sesión válida.";
+      return;
+    }
+    show(true);
+  }catch(error){
+    console.error("Error al iniciar sesión en Supabase.",error);
+    $("lerr").textContent = `No se pudo contactar Supabase: ${error instanceof Error ? error.message : String(error)}`;
+  }finally{
+    button.disabled = false;
+    button.textContent = "Entrar al panel";
+  }
+};
+out.onclick = async () => { await sb.auth.signOut(); show(false); };
+sb.auth.getSession().then(({data})=>show(!!data.session));
+
+/* ===== Actualizacion en vivo ===== */
+function live(){ if(ch) return; const r = () => { clearTimeout(tm); tm = setTimeout(load,250); };
+  ch = sb.channel("xv-live").on("postgres_changes",{event:"*",schema:"public",table:"guests"},r)
+    .on("postgres_changes",{event:"*",schema:"public",table:"event_tables"},r)
+    .subscribe(st=>{ const ok = st==="SUBSCRIBED"; $("lv").textContent = ok ? "En vivo" : "Reconectando…"; $("lv").classList.toggle("is-live",ok); $("lv").classList.toggle("is-connecting",!ok); }); }
+</script>
+</body>
+</html>
