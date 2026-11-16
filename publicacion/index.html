@@ -219,7 +219,6 @@ input,select,textarea{font:inherit;font-size:1.05rem;padding:12px 14px;border-ra
 .rsvp-pass-kicker{font-family:var(--serif);font-size:1.25rem;font-weight:500;color:var(--rose)}
 .rsvp-pass-name{margin:8px 0 2px;font-size:1.65rem;line-height:1.15;color:var(--ink)}
 .rsvp-pass-detail{font-size:1.2rem;line-height:1.35;color:var(--soft)}
-.rsvp-pass-attendees{margin:8px 0 0;font-size:1rem;line-height:1.4;color:var(--ink);overflow-wrap:anywhere}
 .rsvp-card{max-width:510px;margin:14px auto 0;padding:32px 26px 26px;background:var(--card);border:1px solid var(--line);border-radius:14px;box-shadow:0 12px 22px rgba(74,15,46,.12);text-align:left}
 .rsvp-notice{margin:0 auto 25px;max-width:390px;text-align:center;font-size:1.25rem;font-weight:500;line-height:1.18;color:var(--ink)}
 #rsvp form{max-width:none;margin:0;gap:14px}
@@ -387,7 +386,6 @@ body{background-image:radial-gradient(rgba(216,27,115,.10) 1px,transparent 1px)}
       <p class="rsvp-pass-name" id="rsvpGuestName">Querido invitado</p>
       <p class="rsvp-pass-detail" id="rsvpSeatLimit">Pase personal</p>
       <p class="rsvp-pass-detail" id="rsvpTable" role="status" aria-live="polite">Mesa por asignar</p>
-      <p class="rsvp-pass-attendees" id="rsvpAttendees" hidden></p>
       <small id="rsvpTableStatus" class="sans" role="status" aria-live="polite"></small>
     </div>
     <div class="rsvp-card">
@@ -695,11 +693,6 @@ function renderGuestPass(){
   document.getElementById("rsvpGuestName").textContent = G.name;
   if(confirmed) document.getElementById("rsvpSeatLimit").textContent = `Pase para ${count} ${count===1?"persona":"personas"}`;
   document.getElementById("rsvpTable").textContent = G.table_name ? `Mesa: ${G.table_name}` : "Mesa por asignar";
-  const attendees = document.getElementById("rsvpAttendees");
-  attendees.hidden = !confirmed;
-  attendees.textContent = attendeeNames.length
-    ? `Asistentes: ${attendeeNames.join(", ")}`
-    : confirmed ? "Actualiza los nombres de quienes asistirán." : "";
   document.querySelector(".rsvp-pass").classList.toggle("is-confirmed",confirmed && attendeeNames.length>0);
 }
 async function loadGuest(){
