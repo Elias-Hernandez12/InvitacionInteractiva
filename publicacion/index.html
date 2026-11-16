@@ -54,7 +54,7 @@ body{background-image:radial-gradient(rgba(150,100,70,.07) 1px,transparent 1px);
 .flap{position:absolute;left:-1px;right:-1px;top:-1px;height:58%;background:linear-gradient(#f4e9d2,#e3d1b0);clip-path:polygon(0 0,100% 0,50% 100%);transform-origin:50% 0;transition:transform .9s ease .15s,opacity .2s ease .95s;z-index:1}
 .paper.opening .flap{transform:perspective(600px) rotateX(180deg);opacity:0}
 #envelope .env-for{margin:0;font-family:var(--sans);font-weight:300;font-size:.72rem;letter-spacing:.3em;color:#7a5a45}
-#envelope .env-name{margin:2px 0 0;font-size:clamp(1.9rem,8vw,2.4rem);color:#8a3a50;line-height:1.1}
+#envelope .env-name{max-width:90%;margin:2px 0 0;font-size:clamp(1.55rem,6vw,2rem);color:#8a3a50;line-height:1.1;overflow-wrap:anywhere}
 .seal{position:absolute;left:50%;top:calc(58% - 44px);width:68px;height:68px;margin-left:-34px;font-size:1.4rem;z-index:3}
 .shard{position:absolute;z-index:4;pointer-events:none;background:radial-gradient(circle at 35% 30%,#c95a72,#9c3b50 60%,#6e2336)}
 #envelope .env-hint{margin-top:30px;font-family:var(--serif);font-style:italic;font-size:1.35rem;color:#6b4a38;letter-spacing:.02em;min-height:1.6em}
@@ -476,7 +476,7 @@ if(typeof QRCode === "undefined"){
 // Invitado personalizado: ?invitado=Familia%20Pérez
 try{
   const g = new URLSearchParams(location.search).get("invitado");
-  if(g){ document.getElementById("guestName").textContent = g; }
+  if(g){ document.getElementById("guestName").textContent = firstName(g); }
 }catch(e){}
 
 // Abrir sobre
@@ -663,6 +663,9 @@ const LIVE = window.supabase && /supabase\.co/.test(CFG.supabaseUrl) && !/TU-PRO
 const sb = LIVE ? supabase.createClient(CFG.supabaseUrl, CFG.supabaseKey) : null;
 let G = {name: qs.get("invitado")||"Querido invitado"};
 const whatsappAfter = document.getElementById("whatsappAfter");
+function firstName(name){
+  return String(name??"").trim().split(/\s+/)[0] || "Querido invitado";
+}
 async function refreshGuestTable(){
   if(!TOK || !sb || document.hidden) return;
   try{
@@ -689,6 +692,7 @@ function renderGuestPass(){
   const count = attendeeNames.length || Number(G.companions||0)+1;
   const pass = document.querySelector(".rsvp-pass");
   pass.hidden = !confirmed;
+  guestName.textContent = firstName(confirmed && attendeeNames.length ? attendeeNames[0] : G.name);
   document.getElementById("rsvpGuestName").textContent = G.name;
   if(confirmed) document.getElementById("rsvpSeatLimit").textContent = `Pase para ${count} ${count===1?"persona":"personas"}`;
   document.getElementById("rsvpTable").textContent = G.table_name ? `Mesa: ${G.table_name}` : "Mesa por asignar";
@@ -713,7 +717,6 @@ async function loadGuest(){
       return;
     }
   }
-  guestName.textContent = G.name;
   G.table_name = typeof G.table_name==="string" ? G.table_name : null;
   G.attendee_names = Array.isArray(G.attendee_names) ? G.attendee_names : [];
   renderGuestPass();

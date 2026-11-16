@@ -18,6 +18,7 @@ h1{font-family:"Great Vibes",cursive;font-weight:400;font-size:2.6rem;color:var(
 .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;margin-bottom:18px}
 .stat{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px;text-align:center}
 .stat b{display:block;font-size:1.8rem;color:var(--rose)}
+.stat small{display:block;margin-top:3px;color:var(--soft);font-size:.76rem;line-height:1.35}
 input,select,button{font:inherit;padding:9px 12px;border-radius:10px;border:1px solid var(--line);background:#fff;color:var(--ink)}
 button{cursor:pointer;background:linear-gradient(135deg,#ff4f9a,#d81b73);color:#fff;border:0}
 button.g{background:#fff;color:var(--rose);border:1px solid var(--rose)}
@@ -159,7 +160,16 @@ async function load(){
 }
 function render(){
   const confirmed = G.filter(g=>g.status==="confirmado");
-  $("stats").innerHTML = [["Invitaciones",G.length],["Confirmadas",confirmed.length],["Asistentes confirmados",confirmed.reduce((a,g)=>a+g.companions+1,0)],["Pendientes",G.filter(g=>g.status==="pendiente").length],["No asistirán",G.filter(g=>g.status==="rechazado").length]].map(([k,v])=>`<div class="stat"><b>${v}</b>${k}</div>`).join("");
+  const declined = G.filter(g=>g.status==="rechazado").length;
+  const pending = G.filter(g=>g.status==="pendiente").length;
+  const attendeeCount = confirmed.reduce((total,g)=>total+(Array.isArray(g.attendee_names)&&g.attendee_names.length?g.attendee_names.length:g.companions+1),0);
+  const metrics = [
+    ["Pases creados",G.length,"Total de invitaciones"],
+    ["Respuestas recibidas",confirmed.length+declined,`${confirmed.length} confirmadas · ${declined} declinadas`],
+    ["Personas que asistirán",attendeeCount,"Suma de asistentes confirmados"],
+    ["Pendientes",pending,"Aún no responden"]
+  ];
+  $("stats").innerHTML = metrics.map(([label,value,detail])=>`<div class="stat"><b>${value}</b>${label}<small>${detail}</small></div>`).join("");
   const statusLabel = g => g.status==="confirmado" ? "Confirmada" : g.status==="rechazado" ? "No asistirá" : "Pendiente";
   const occupancy = new Map(T.map(t=>[t.id,{attendees:0,passes:0}]));
   G.forEach(g=>{const stats=occupancy.get(g.table_id);if(stats){if(g.status==="confirmado")stats.attendees+=Array.isArray(g.attendee_names)&&g.attendee_names.length?g.attendee_names.length:g.companions+1;stats.passes++;}});
