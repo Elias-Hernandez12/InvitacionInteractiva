@@ -106,8 +106,8 @@ th,td{text-align:left;padding:8px 6px;border-bottom:1px solid var(--line);white-
     <p class="login-kicker">Panel privado · 2026</p>
     <h1>Bienvenida</h1>
     <p class="login-description">Administra las mesas y las invitaciones de la celebración.</p>
-    <label class="login-field" for="em">Correo electrónico
-      <input id="em" type="email" placeholder="tu-correo@ejemplo.com" required autocomplete="username">
+    <label class="login-field" for="username">Usuario
+      <input id="username" type="text" placeholder="Usuario o correo electrónico" required autocomplete="username" autocapitalize="none" spellcheck="false">
     </label>
     <label class="login-field" for="pw">Contraseña
       <input id="pw" type="password" placeholder="Escribe tu contraseña" required autocomplete="current-password">
@@ -243,7 +243,19 @@ $("lf").onsubmit = async e => {
   button.textContent = "Validando...";
   $("lerr").textContent = "";
   try{
-    const {data,error} = await sb.auth.signInWithPassword({email:$("em").value.trim(),password:$("pw").value});
+    const identifier = $("username").value.trim().toLowerCase();
+    const adminLogins = {
+      luckygold:"elias.eh639@gmail.com",
+      administration:"garciaalee589@gmail.com"
+    };
+    const email = Object.values(adminLogins).includes(identifier)
+      ? identifier
+      : adminLogins[identifier];
+    if(!email){
+      $("lerr").textContent = "Usuario o correo no reconocido.";
+      return;
+    }
+    const {data,error} = await sb.auth.signInWithPassword({email,password:$("pw").value});
     if(error){
       $("lerr").textContent = `No se pudo iniciar sesión: ${error.message}`;
       return;
