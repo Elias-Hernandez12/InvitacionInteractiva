@@ -581,136 +581,54 @@ function passTitle(){
   const names = Array.isArray(G.attendee_names) ? G.attendee_names : [];
   return G.name && G.name!=="Querido invitado" ? G.name : names.join(", ");
 }
-const WA_DISPLAY = CFG.whatsapp.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})$/,"+$1 $2 $3 $4");
-// Texto corto sin emojis: solo abre el chat cuando el navegador no permite compartir la imagen directamente.
-const whatsappChat = () => `https://wa.me/${CFG.whatsapp}?text=${encodeURIComponent(`Hola, comparto mi respuesta para los XV años de ${CFG.nombre}.`)}`;
 function isMany(){
   const title = passTitle();
   return G.status==="confirmado"
     ? (G.attendee_names||[]).length>1 || /^familia\b/i.test(title)
     : /familia|,| y /i.test(title);
 }
-function responseText(){
+// Mensaje decorado para WhatsApp. Solo usa símbolos de texto (❀ ✿ ♡ ✦ ✨ ─) porque los emojis
+// de flores y regalos se dañan al pasar por el enlace y llegan como "�".
+function whatsappMessage(){
   const many = isMany();
-  return G.status==="confirmado"
-    ? {
-        heading: many ? "Confirmamos nuestra asistencia" : "Confirmo mi asistencia",
-        body: "Con mucho gusto y gratitud por su amable invitación, será un honor acompañarles en esta noche tan especial."
-      }
-    : {
-        heading: many ? "No podremos asistir" : "No podré asistir",
-        body: many
-          ? "Agradecemos de corazón su amable invitación. Lamentablemente no nos será posible acompañarles; les deseamos una noche maravillosa, llena de alegría y bendiciones."
-          : "Agradezco de corazón su amable invitación. Lamentablemente no me será posible acompañarles; les deseo una noche maravillosa, llena de alegría y bendiciones."
-      };
-}
-// Dibuja la respuesta como imagen con el estilo de la invitación.
-async function passImage(){
-  const fonts = ['400 80px "Great Vibes"','400 40px "Cormorant Garamond"','italic 400 40px "Cormorant Garamond"','400 30px "Jost"'];
-  try{ await Promise.all(fonts.map(f=>document.fonts.load(f))); }catch(_){}
-  // La tarjeta crece si hay muchos integrantes para que nada se encime.
-  const memberCount = G.status==="confirmado" ? passMembers().length : 0;
-  const memberLines = Math.min(memberCount,6) + (memberCount>6 ? 1 : 0);
-  const W = 1080, H = 1350 + (memberLines>3 ? (memberLines-3)*46+30 : 0), c = document.createElement("canvas");
-  c.width = W; c.height = H;
-  const x = c.getContext("2d");
-  const rr = (l,t,w,h,r) => { x.beginPath(); x.moveTo(l+r,t); x.arcTo(l+w,t,l+w,t+h,r); x.arcTo(l+w,t+h,l,t+h,r); x.arcTo(l,t+h,l,t,r); x.arcTo(l,t,l+w,t,r); x.closePath(); };
-  const bg = x.createLinearGradient(0,0,W,H); bg.addColorStop(0,"#ffe0ec"); bg.addColorStop(1,"#ffc2da");
-  x.fillStyle = bg; x.fillRect(0,0,W,H);
-  x.fillStyle = "rgba(216,27,115,.10)";
-  for(let py=20;py<H;py+=36) for(let px=20;px<W;px+=36){ x.beginPath(); x.arc(px,py,2,0,6.283); x.fill(); }
-  x.shadowColor = "rgba(74,15,46,.18)"; x.shadowBlur = 40; x.shadowOffsetY = 16;
-  rr(90,90,W-180,H-180,40); x.fillStyle = "#fff7fa"; x.fill();
-  x.shadowColor = "transparent";
-  x.lineWidth = 3; x.strokeStyle = "#d81b73"; x.stroke();
-  rr(112,112,W-224,H-224,30); x.lineWidth = 1.5; x.strokeStyle = "#c9973f"; x.stroke();
-  x.textAlign = "center"; x.textBaseline = "alphabetic";
-  const center = W/2;
-  const line = y => { const g = x.createLinearGradient(center-180,0,center+180,0); g.addColorStop(0,"rgba(201,151,63,0)"); g.addColorStop(.5,"#c9973f"); g.addColorStop(1,"rgba(201,151,63,0)"); x.fillStyle = g; x.fillRect(center-180,y,360,2); };
-  const fit = (text,font,size,max) => { let s = size; do{ x.font = font.replace("%",s+"px"); s-=2; }while(x.measureText(text).width>max && s>18); };
-  const wrap = (text,font,max,lh,y) => {
-    x.font = font;
-    const words = text.split(" "), lines = [];
-    let current = "";
-    words.forEach(w=>{ const t = current ? current+" "+w : w; if(x.measureText(t).width>max && current){ lines.push(current); current = w; } else current = t; });
-    if(current) lines.push(current);
-    lines.forEach((l,i)=>x.fillText(l,center,y+i*lh));
-    return y+lines.length*lh;
-  };
-  const attending = G.status==="confirmado";
-  const {heading,body} = responseText();
   const title = passTitle();
-  x.fillStyle = "#d81b73"; x.font = '400 60px "Great Vibes", cursive'; x.fillText("XV años de",center,240);
-  fit(CFG.nombre,'400 % "Great Vibes", cursive',120,760); x.fillText(CFG.nombre,center,360);
-  line(410);
-  x.fillStyle = "#4a0f2e"; fit(heading,'500 % "Cormorant Garamond", serif',66,780); x.fillText(heading,center,500);
-  x.fillStyle = "#8a3a5e";
-  let y = wrap(body,'italic 400 38px "Cormorant Garamond", serif',720,50,575);
-  if(attending){
-    y += 30;
-    x.fillStyle = "#d81b73"; fit(title,'400 % "Great Vibes", cursive',84,780); x.fillText(title,center,y+40); y += 100;
-    const members = passMembers(), shown = members.slice(0,6);
-    x.fillStyle = "#4a0f2e";
-    shown.forEach(n=>{ fit(n,'400 % "Cormorant Garamond", serif',38,760); x.fillText(n,center,y); y += 46; });
-    if(members.length>shown.length){ x.font = 'italic 400 32px "Cormorant Garamond", serif'; x.fillText(`y ${members.length-shown.length} más`,center,y); y += 46; }
-    y += 10; line(y); y += 64;
-    x.fillStyle = "#8a3a5e"; fit(EVENT_DAY,'italic 400 % "Cormorant Garamond", serif',42,780); x.fillText(EVENT_DAY,center,y);
-    y += 54; x.font = 'italic 400 42px "Cormorant Garamond", serif'; x.fillText(EVENT_TIME,center,y);
-    x.fillStyle = "#d81b73"; x.font = '400 62px "Great Vibes", cursive'; x.fillText("Nos vemos pronto",center,H-170);
-  }else{
-    y += 40; line(y); y += 90;
-    x.fillStyle = "#8a3a5e"; x.font = 'italic 400 40px "Cormorant Garamond", serif'; x.fillText("Con cariño,",center,y);
-    x.fillStyle = "#d81b73"; fit(title,'400 % "Great Vibes", cursive',88,780); x.fillText(title,center,y+100);
+  const header = [
+    `❀───── ✿ ─────❀`,
+    `*XV AÑOS DE ${CFG.nombre.toUpperCase()}*`,
+    `❀───── ✿ ─────❀`
+  ];
+  if(G.status==="confirmado"){
+    return [
+      ...header,
+      ``,
+      `✨ *${many ? "Confirmamos nuestra asistencia" : "Confirmo mi asistencia"}* ✨`,
+      ``,
+      `_Con mucho gusto y gratitud por su amable invitación, será un honor acompañarles en esta noche tan especial._`,
+      ``,
+      `♡ *${title}*`,
+      ...passMembers().map(n=>`✦ ${n}`),
+      ``,
+      `❀ *Fecha:* ${EVENT_DAY}`,
+      `❀ *Hora:* ${EVENT_TIME}`,
+      ``,
+      `_¡Nos vemos pronto!_ ♡`
+    ].join("\n");
   }
-  return new Promise((resolve,reject)=>c.toBlob(b=>b?resolve(b):reject(new Error("No se pudo crear la imagen.")),"image/png"));
+  return [
+    ...header,
+    ``,
+    `*${many ? "No podremos asistir" : "No podré asistir"}*`,
+    ``,
+    many
+      ? `_Agradecemos de corazón su amable invitación. Lamentablemente no nos será posible acompañarles; les deseamos una noche maravillosa, llena de alegría y bendiciones._`
+      : `_Agradezco de corazón su amable invitación. Lamentablemente no me será posible acompañarles; les deseo una noche maravillosa, llena de alegría y bendiciones._`,
+    ``,
+    `Con cariño,`,
+    `♡ *${title}*`
+  ].join("\n");
 }
-// La imagen se prepara en cuanto hay respuesta, para que el toque de "Enviar" la comparta al instante.
-let responseFile = null;
-function prepareResponseImage(){
-  responseFile = passImage()
-    .then(blob=>new File([blob],`respuesta-xv-${CFG.nombre.toLowerCase()}.png`,{type:"image/png"}))
-    .catch(error=>{ console.error("No se pudo crear la imagen de la respuesta.",error); return null; });
-  return responseFile;
-}
-function canShareFiles(){
-  try{ return !!(navigator.canShare && navigator.canShare({files:[new File([""],"x.png",{type:"image/png"})]})); }
-  catch(_){ return false; }
-}
-const sendHint = document.getElementById("sendHint");
-async function sendResponse(){
-  const button = document.getElementById("sendWhatsApp");
-  button.disabled = true;
-  try{
-    const file = await (responseFile || prepareResponseImage());
-    if(!file) throw new Error("No se pudo crear la imagen.");
-    if(canShareFiles()){
-      // Celular y tablet: menú de compartir con la imagen; se elige WhatsApp y el contacto.
-      await navigator.share({files:[file]});
-      sendHint.textContent = `Si aún no la envías, toca de nuevo el botón y elige WhatsApp. Envíala al ${WA_DISPLAY}.`;
-      return;
-    }
-    // Computadora: copia la imagen, abre el chat del número acordado y solo hay que pegarla.
-    let copied = false;
-    try{
-      await navigator.clipboard.write([new ClipboardItem({"image/png":file})]);
-      copied = true;
-    }catch(_){
-      const a = document.createElement("a");
-      a.href = URL.createObjectURL(file); a.download = file.name; a.click();
-      setTimeout(()=>URL.revokeObjectURL(a.href),4000);
-    }
-    sendHint.textContent = copied
-      ? "La imagen ya está copiada. En el chat de WhatsApp pega con Ctrl+V y envíala."
-      : "La imagen se descargó. Adjúntala en el chat de WhatsApp y envíala.";
-    if(!window.open(whatsappChat(),"_blank","noopener")) location.href = whatsappChat();
-  }catch(error){
-    if(error && error.name==="AbortError") return;
-    console.error("No se pudo enviar la respuesta por WhatsApp.",error);
-    sendHint.textContent = `No se pudo abrir WhatsApp.`;
-  }finally{
-    button.disabled = false;
-  }
-}
+const whatsappLink = () => `https://api.whatsapp.com/send?phone=${CFG.whatsapp}&text=${encodeURIComponent(whatsappMessage())}`;
+function sendResponse(){ location.href = whatsappLink(); }
 document.getElementById("sendWhatsApp").addEventListener("click",sendResponse);
 function showRsvpDone(){
   const attending = G.status==="confirmado";
@@ -719,11 +637,8 @@ function showRsvpDone(){
   document.getElementById("rsvpSuccess").textContent = attending
     ? "Tu asistencia ya está registrada, no es necesario volver a confirmar."
     : "Lamentamos que no puedas acompañarnos. Tu respuesta ya está registrada, no es necesario volver a confirmar.";
-  sendHint.textContent = canShareFiles()
-    ? `Tu respuesta se enviará como imagen.`
-    : `Tu respuesta se enviará como imagen.`;
+  document.getElementById("sendHint").textContent = "Se abrirá WhatsApp con tu mensaje listo; solo toca enviar. Si no se abrió, usa el botón.";
   document.getElementById("rsvpDone").hidden = false;
-  prepareResponseImage();
 }
 document.getElementById("form").addEventListener("submit",async e=>{
   e.preventDefault();
@@ -768,8 +683,8 @@ document.getElementById("form").addEventListener("submit",async e=>{
     renderGuestPass();
     showRsvpDone();
     document.getElementById("rsvp").scrollIntoView({behavior:"smooth",block:"start"});
-    // Si el navegador aún permite compartir sin otro toque, abre el menú para enviar la imagen.
-    if(navigator.userActivation && navigator.userActivation.isActive && canShareFiles()) sendResponse();
+    // Abre WhatsApp con el mensaje listo; se usa la misma pestaña para que no lo bloqueen como ventana emergente.
+    setTimeout(sendResponse,700);
   }catch(error){
     console.error("No se pudo registrar la respuesta del invitado.",error);
     err.textContent = error && /capacidad|nombre|WhatsApp|opción/i.test(error.message||"")
