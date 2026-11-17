@@ -72,7 +72,12 @@ th,td{text-align:left;padding:8px 6px;border-bottom:1px solid var(--line);white-
 .tables-heading p{margin:0;color:var(--soft);font-size:.9rem;line-height:1.45}
 .tables-eyebrow{font-size:.7rem!important;font-weight:500;letter-spacing:.18em;text-transform:uppercase;color:var(--rose)!important}
 .tables-mark{display:grid;place-items:center;flex:none;width:52px;height:52px;border:1px solid var(--line);border-radius:16px;background:#fff6fa;color:var(--rose);font-family:Georgia,serif;font-size:1.25rem}
-.tables-form{display:grid;grid-template-columns:minmax(0,1fr) 120px auto;align-items:center;gap:10px;margin:0 0 18px;padding:14px;border:1px solid var(--line);border-radius:16px;background:linear-gradient(135deg,#fff8fb,#fff)}
+.tf-field{display:grid;gap:5px;min-width:0;color:var(--soft);font-size:.72rem;font-weight:500;letter-spacing:.08em;text-transform:uppercase}
+.tf-field input{color:var(--ink);font-size:1rem;font-weight:400;letter-spacing:0;text-transform:none}
+.seats-input{display:flex;align-items:center;gap:8px}
+.seats-input input{width:100%;min-width:0}
+.seats-input small{color:var(--soft);font-size:.85rem;font-weight:400;letter-spacing:0;text-transform:none}
+.tables-form{display:grid;grid-template-columns:minmax(0,1fr) 170px auto;align-items:end;gap:10px;margin:0 0 18px;padding:14px;border:1px solid var(--line);border-radius:16px;background:linear-gradient(135deg,#fff8fb,#fff)}
 .tables-form input{min-width:0;min-height:42px}
 .tables-form button{min-height:42px;padding-inline:18px;white-space:nowrap}
 .capacity-cell{display:grid;gap:5px;min-width:92px;font-size:.85rem;color:var(--soft)}
@@ -116,9 +121,8 @@ body.dragging,body.dragging *{cursor:grabbing!important;user-select:none;-webkit
   #app .wrap>.row:first-child>span{display:flex;align-items:center;flex-wrap:wrap;gap:8px}
   #app .wrap>.row:first-child>span button{flex:1 1 44%;min-height:44px}
   .stats{grid-template-columns:repeat(2,minmax(0,1fr))}
-  #tf{grid-template-columns:minmax(0,1fr) 100px;gap:8px;padding:10px}
+  #tf{grid-template-columns:minmax(0,1fr);gap:10px;padding:12px}
   #gn{min-width:0}
-  #tn{grid-column:1/-1;min-width:0}
   #gf button{grid-column:1/-1;min-height:44px}
   #tf button{grid-column:1/-1;min-height:44px}
   .scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
@@ -153,7 +157,11 @@ body.dragging,body.dragging *{cursor:grabbing!important;user-select:none;-webkit
       <div class="tables-heading">
         <div><p class="tables-eyebrow">Organización del evento</p><h3>Mesas</h3><p><b>Computadora:</b> arrastra la invitación hasta la mesa. <b>Celular o tablet:</b> mantén presionada la invitación un momento y arrástrala. También puedes tocarla y después tocar la mesa. Para quitarla de una mesa, arrástrala de vuelta a «Sin mesa» o toca la ✕.</p></div>
       </div>
-      <form class="tables-form" id="tf"><input id="tn" placeholder="Nombre (ej. Mesa 1)" required aria-label="Nombre de la mesa"><input id="tc" type="number" min="1" value="10" aria-label="Capacidad de la mesa"><button>Agregar mesa</button></form>
+      <form class="tables-form" id="tf">
+        <label class="tf-field">Nombre de la mesa<input id="tn" placeholder="Ej. Mesa 1" required></label>
+        <label class="tf-field">Lugares por mesa<span class="seats-input"><input id="tc" type="number" min="1" value="10" required inputmode="numeric"><small>lugares</small></span></label>
+        <button>Agregar mesa</button>
+      </form>
       <div class="tray" data-tray><p class="tray-title" id="trayTitle">Sin mesa</p><div class="chips" id="ua" data-empty="Todas las invitaciones tienen mesa."></div></div>
       <div class="pick-hint" id="pickHint" role="status" aria-live="polite" hidden><span id="pickText"></span><button type="button" class="g" id="pickCancel">Cancelar</button></div>
       <div class="table-grid" id="tb"></div>
@@ -236,7 +244,7 @@ function render(){
   const freeOptions = free.map(g=>`<option value="${g.id}">${esc(g.name)} · ${chipTag(g)}</option>`).join("");
   $("tb").innerHTML = T.length ? T.map(t=>{const stats=occupancy.get(t.id);return `<div class="tcard${stats.attendees>=t.capacity?" full":""}" data-table="${t.id}">
       <div class="tcard-head"><b>${esc(t.name)}</b><button type="button" class="btn-del" data-a="dt" data-id="${t.id}" aria-label="Eliminar mesa ${esc(t.name)}">${TRASH}Eliminar</button></div>
-      <div class="capacity-cell"><span>${stats.attendees} de ${t.capacity} personas</span><progress max="${t.capacity}" value="${Math.min(stats.attendees,t.capacity)}"></progress></div>
+      <div class="capacity-cell"><span>${stats.attendees} de ${t.capacity} lugares ocupados</span><progress max="${t.capacity}" value="${Math.min(stats.attendees,t.capacity)}"></progress></div>
       <div class="chips" data-empty="Sin invitaciones todavía.">${stats.guests.map(g=>`<span class="chip${picked===g.id?" picked":""}"><button type="button" data-pick="${g.id}" aria-pressed="${picked===g.id}" title="Toca para moverla a otra mesa">${esc(g.name)}<small>${chipTag(g)}</small></button><button type="button" data-unassign="${g.id}" aria-label="Quitar ${esc(g.name)} de ${esc(t.name)}">✕</button></span>`).join("")}</div>
       <select data-add-table="${t.id}" aria-label="Agregar invitación a ${esc(t.name)}"${free.length?"":" disabled"}><option value="">+ Agregar invitación…</option>${freeOptions}</select>
     </div>`;}).join("") : `<p class="tables-empty">Todavía no hay mesas. Agrega la primera arriba.</p>`;
