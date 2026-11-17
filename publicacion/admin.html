@@ -35,6 +35,18 @@ button.g{background:#fff;color:var(--rose);border:1px solid var(--rose)}
 .scroll{overflow-x:auto}
 table{width:100%;border-collapse:collapse;font-size:.92rem}
 th,td{text-align:left;padding:8px 6px;border-bottom:1px solid var(--line);white-space:nowrap}
+.btn-del{display:inline-flex;align-items:center;gap:6px;padding:7px 12px;background:#fff;color:#b42345;border:1px solid #eaa3b5;border-radius:10px;font-size:.85rem;font-weight:500}
+.btn-del svg{width:16px;height:16px;flex:none}
+.btn-del:hover,.btn-del:focus-visible{background:#fde4ea;border-color:#b42345}
+#ask{position:fixed;inset:0;z-index:40;display:grid;place-items:center;padding:20px;background:rgba(74,15,46,.55)}
+.ask-card{width:min(380px,100%);padding:24px 22px 20px;border-radius:20px;background:#fff;box-shadow:0 24px 60px rgba(74,15,46,.3);text-align:center}
+.ask-icon{display:grid;place-items:center;width:54px;height:54px;margin:0 auto 10px;border-radius:50%;background:#fde4ea;color:#b42345}
+.ask-icon svg{width:26px;height:26px}
+.ask-card h3{margin:0 0 6px;font-size:1.15rem;color:var(--ink)}
+.ask-card p{margin:0 0 18px;color:var(--soft);font-size:.92rem;line-height:1.45}
+.ask-actions{display:flex;gap:10px}
+.ask-actions button{flex:1;min-height:44px;font-weight:500}
+.ask-actions .danger{background:#b42345}
 #modal{position:fixed;inset:0;background:rgba(74,15,46,.6);display:none;place-items:center;z-index:9;padding:20px}
 #modal.on{display:grid}
 #modal .card{text-align:center;margin:0}
@@ -153,6 +165,14 @@ body.dragging,body.dragging *{cursor:grabbing!important;user-select:none;-webkit
     </div>
   </div>
 </div></div>
+<div id="ask" role="dialog" aria-modal="true" aria-labelledby="askTitle" aria-describedby="askText" hidden>
+  <div class="ask-card">
+    <div class="ask-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6M10 11v6M14 11v6"/></svg></div>
+    <h3 id="askTitle"></h3>
+    <p id="askText"></p>
+    <div class="ask-actions"><button type="button" class="g" id="askNo">Cancelar</button><button type="button" class="danger" id="askYes">Sí, eliminar</button></div>
+  </div>
+</div>
 <div id="modal"><div class="card"><h1 id="mn" style="font-size:2rem"></h1><div id="mq" style="display:grid;place-items:center;margin:12px"></div><button class="g" id="mc">Cerrar</button></div></div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
@@ -163,6 +183,21 @@ const sb = supabase.createClient(CFG.url, CFG.key);
 const $ = id => document.getElementById(id), esc = s => String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 let G = [], T = [];
 const link = g => CFG.invitacion.split("?")[0]+"?t="+g.token;
+const TRASH = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6M10 11v6M14 11v6"/></svg>';
+// Ventana propia para confirmar antes de eliminar.
+function askDelete(title,text){
+  return new Promise(resolve=>{
+    const box = $("ask"), yes = $("askYes"), no = $("askNo"), prev = document.activeElement;
+    $("askTitle").textContent = title; $("askText").textContent = text;
+    box.hidden = false; no.focus();
+    const close = ok => { box.hidden = true; yes.onclick = no.onclick = box.onclick = null; document.removeEventListener("keydown",key); if(prev && prev.focus) prev.focus(); resolve(ok); };
+    const key = e => { if(e.key==="Escape") close(false); };
+    yes.onclick = () => close(true);
+    no.onclick = () => close(false);
+    box.onclick = e => { if(e.target===box) close(false); };
+    document.addEventListener("keydown",key);
+  });
+}
 // Fecha y hora local en la que el invitado respondió; "—" si aún no responde.
 const respondedAt = g => g.responded_at && g.status!=="pendiente"
   ? new Date(g.responded_at).toLocaleString("es-MX",{day:"2-digit",month:"short",year:"numeric",hour:"numeric",minute:"2-digit",hour12:true})
@@ -200,7 +235,7 @@ function render(){
   $("ua").innerHTML = free.map(g=>`<span class="chip${picked===g.id?" picked":""}"><button type="button" data-pick="${g.id}" aria-pressed="${picked===g.id}">${esc(g.name)}<small>${chipTag(g)}</small></button></span>`).join("");
   const freeOptions = free.map(g=>`<option value="${g.id}">${esc(g.name)} · ${chipTag(g)}</option>`).join("");
   $("tb").innerHTML = T.length ? T.map(t=>{const stats=occupancy.get(t.id);return `<div class="tcard${stats.attendees>=t.capacity?" full":""}" data-table="${t.id}">
-      <div class="tcard-head"><b>${esc(t.name)}</b><button type="button" class="g" data-a="dt" data-id="${t.id}" aria-label="Eliminar mesa ${esc(t.name)}">Eliminar</button></div>
+      <div class="tcard-head"><b>${esc(t.name)}</b><button type="button" class="btn-del" data-a="dt" data-id="${t.id}" aria-label="Eliminar mesa ${esc(t.name)}">${TRASH}Eliminar</button></div>
       <div class="capacity-cell"><span>${stats.attendees} de ${t.capacity} personas</span><progress max="${t.capacity}" value="${Math.min(stats.attendees,t.capacity)}"></progress></div>
       <div class="chips" data-empty="Sin invitaciones todavía.">${stats.guests.map(g=>`<span class="chip${picked===g.id?" picked":""}"><button type="button" data-pick="${g.id}" aria-pressed="${picked===g.id}" title="Toca para moverla a otra mesa">${esc(g.name)}<small>${chipTag(g)}</small></button><button type="button" data-unassign="${g.id}" aria-label="Quitar ${esc(g.name)} de ${esc(t.name)}">✕</button></span>`).join("")}</div>
       <select data-add-table="${t.id}" aria-label="Agregar invitación a ${esc(t.name)}"${free.length?"":" disabled"}><option value="">+ Agregar invitación…</option>${freeOptions}</select>
@@ -212,7 +247,7 @@ function render(){
   $("gb").innerHTML = G.map(g=>`<tr><td>${esc(g.name)}</td><td><span class="state ${g.status}">${statusLabel(g)}</span></td><td>${g.status==="confirmado"?people(g):"—"}</td><td>${respondedAt(g)}</td>
     <td><button class="g" data-a="cp" data-id="${g.id}">Copiar enlace</button></td>
     <td><button class="g" data-a="qr" data-id="${g.id}">QR</button></td>
-    <td><button class="g" data-a="dg" data-id="${g.id}" aria-label="Eliminar invitación de ${esc(g.name)}">🗑</button></td></tr>`).join("");
+    <td><button class="btn-del" data-a="dg" data-id="${g.id}" aria-label="Eliminar invitación de ${esc(g.name)}">${TRASH}Eliminar</button></td></tr>`).join("");
 }
 async function run(p){ const {error} = await p; if(error){ alert(error.message); return; } await load(); }
 $("gf").onsubmit = e => { e.preventDefault(); run(sb.from("guests").insert({name:gn.value.trim()})); gn.value=""; };
@@ -328,12 +363,12 @@ document.addEventListener("change",e=>{
   if(add && add.value){ add.disabled=true; assign(add.value,add.dataset.addTable); }
 });
 document.addEventListener("click",e=>{ const b = e.target.closest("[data-a]"); if(!b||b.tagName==="SELECT"||b.type==="checkbox") return; const a = b.dataset.a;
-  if(a==="dt"){const t=T.find(x=>x.id===b.dataset.id);if(t&&confirm("¿Eliminar la mesa "+t.name+"?")) run(sb.from("event_tables").delete().eq("id",t.id));return;}
+  if(a==="dt"){const t=T.find(x=>x.id===b.dataset.id);if(t) askDelete(`¿Seguro que quieres eliminar «${t.name}»?`,"Las invitaciones de esta mesa quedarán sin mesa. Esta acción no se puede deshacer.").then(ok=>{ if(ok) run(sb.from("event_tables").delete().eq("id",t.id)); });return;}
   const g = G.find(x=>x.id===b.dataset.id);
   if(!g) return;
   if(a==="cp"){ navigator.clipboard.writeText(link(g)).then(()=>{ b.textContent = "Copiado"; setTimeout(()=>b.textContent="Copiar enlace",1200); }).catch(error=>{ console.error("No se pudo copiar el enlace.",error); alert("No se pudo copiar el enlace. Inténtalo de nuevo."); }); }
   if(a==="qr"){ mn.textContent = g.name; mq.innerHTML = ""; new QRCode(mq,{text:link(g),width:220,height:220,colorDark:"#a3104f"}); modal.classList.add("on"); }
-  if(a==="dg" && confirm("¿Eliminar a "+g.name+"?")) run(sb.from("guests").delete().eq("id",g.id));
+  if(a==="dg") askDelete(`¿Seguro que quieres eliminar la invitación «${g.name}»?`,"Se borrará su respuesta y su enlace dejará de funcionar. Esta acción no se puede deshacer.").then(ok=>{ if(ok) run(sb.from("guests").delete().eq("id",g.id)); });
 });
 mc.onclick = () => modal.classList.remove("on");
 csv.onclick = () => { const r = [["Invitación","Estado","Asistentes","Mesa","Respondió","Enlace"],...G.map(g=>[g.name,g.status,g.status==="confirmado"?(Array.isArray(g.attendee_names)&&g.attendee_names.length?g.attendee_names.length:g.companions+1):0,T.find(t=>t.id===g.table_id)?.name||"",respondedAt(g).replace("—",""),link(g)])];
