@@ -149,7 +149,7 @@ body.dragging,body.dragging *{cursor:grabbing!important;user-select:none;-webkit
     <div class="card"><h3 style="margin-top:0">Invitaciones</h3>
       <p>La respuesta se guarda al confirmar. WhatsApp es opcional; el panel no puede verificar si el mensaje se envió.</p>
       <form class="row" id="gf"><input id="gn" placeholder="Nombre de la invitación" required><button>Agregar invitación</button></form>
-      <div class="scroll"><table><thead><tr><th>Invitación</th><th>Estado</th><th>Asistentes</th><th>Enlace</th><th>QR</th><th></th></tr></thead><tbody id="gb"></tbody></table></div>
+      <div class="scroll"><table><thead><tr><th>Invitación</th><th>Estado</th><th>Asistentes</th><th>Respondió</th><th>Enlace</th><th>QR</th><th></th></tr></thead><tbody id="gb"></tbody></table></div>
     </div>
   </div>
 </div></div>
@@ -163,10 +163,14 @@ const sb = supabase.createClient(CFG.url, CFG.key);
 const $ = id => document.getElementById(id), esc = s => String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 let G = [], T = [];
 const link = g => CFG.invitacion.split("?")[0]+"?t="+g.token;
+// Fecha y hora local en la que el invitado respondió; "—" si aún no responde.
+const respondedAt = g => g.responded_at && g.status!=="pendiente"
+  ? new Date(g.responded_at).toLocaleString("es-MX",{day:"2-digit",month:"short",year:"numeric",hour:"numeric",minute:"2-digit",hour12:true})
+  : "—";
 
 async function load(){
   const [{data:guests,error:guestError},{data:tables,error:tableError}] = await Promise.all([
-    sb.from("guests").select("id,name,token,created_at,status,companions,attendee_names,table_id").order("created_at"),
+    sb.from("guests").select("id,name,token,created_at,status,companions,attendee_names,table_id,responded_at").order("created_at"),
     sb.from("event_tables").select("id,name,capacity").order("name")
   ]);
   if(guestError){ alert("Error al cargar invitaciones: "+guestError.message); return; }
@@ -205,7 +209,7 @@ function render(){
   $("tb").classList.toggle("picking",!!pg);
   $("pickHint").hidden = !pg;
   if(pg) $("pickText").textContent = `Toca la mesa para sentar a «${pg.name}».`;
-  $("gb").innerHTML = G.map(g=>`<tr><td>${esc(g.name)}</td><td><span class="state ${g.status}">${statusLabel(g)}</span></td><td>${g.status==="confirmado"?people(g):"—"}</td>
+  $("gb").innerHTML = G.map(g=>`<tr><td>${esc(g.name)}</td><td><span class="state ${g.status}">${statusLabel(g)}</span></td><td>${g.status==="confirmado"?people(g):"—"}</td><td>${respondedAt(g)}</td>
     <td><button class="g" data-a="cp" data-id="${g.id}">Copiar enlace</button></td>
     <td><button class="g" data-a="qr" data-id="${g.id}">QR</button></td>
     <td><button class="g" data-a="dg" data-id="${g.id}" aria-label="Eliminar invitación de ${esc(g.name)}">🗑</button></td></tr>`).join("");
@@ -332,7 +336,7 @@ document.addEventListener("click",e=>{ const b = e.target.closest("[data-a]"); i
   if(a==="dg" && confirm("¿Eliminar a "+g.name+"?")) run(sb.from("guests").delete().eq("id",g.id));
 });
 mc.onclick = () => modal.classList.remove("on");
-csv.onclick = () => { const r = [["Invitación","Estado","Asistentes","Mesa","Enlace"],...G.map(g=>[g.name,g.status,g.status==="confirmado"?(Array.isArray(g.attendee_names)&&g.attendee_names.length?g.attendee_names.length:g.companions+1):0,T.find(t=>t.id===g.table_id)?.name||"",link(g)])];
+csv.onclick = () => { const r = [["Invitación","Estado","Asistentes","Mesa","Respondió","Enlace"],...G.map(g=>[g.name,g.status,g.status==="confirmado"?(Array.isArray(g.attendee_names)&&g.attendee_names.length?g.attendee_names.length:g.companions+1):0,T.find(t=>t.id===g.table_id)?.name||"",respondedAt(g).replace("—",""),link(g)])];
   const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob(["\ufeff"+r.map(x=>x.map(v=>'"'+String(v).replace(/"/g,'""')+'"').join(",")).join("\n")],{type:"text/csv"})); a.download = "invitados-xv.csv"; a.click(); };
 let ch = null, tm;
 async function show(ok){ $("login").hidden = ok; $("app").hidden = !ok; if(ok){ load(); live(); } else if(ch){ sb.removeChannel(ch); ch = null; } }

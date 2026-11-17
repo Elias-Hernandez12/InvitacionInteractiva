@@ -782,8 +782,10 @@ function renderGuestPass(){
   const attendeeNames = Array.isArray(G.attendee_names) ? G.attendee_names : [];
   const confirmed = G.status==="confirmado";
   const pass = document.querySelector(".rsvp-pass");
-  pass.hidden = !confirmed;
-  guestName.textContent = firstName(confirmed && attendeeNames.length ? attendeeNames[0] : G.name);
+  // Enlace del panel: el pase existe desde antes de responder ("Familia López", mesa por asignar).
+  const personalPass = MODE==="personal" && !!G.status && G.status!=="rechazado";
+  pass.hidden = !(confirmed || personalPass);
+  guestName.textContent = personalPass ? G.name : firstName(confirmed && attendeeNames.length ? attendeeNames[0] : G.name);
   document.getElementById("rsvpGuestName").textContent = passTitle();
   const members = passMembers(), list = document.getElementById("rsvpMembers");
   list.replaceChildren(...members.map(n=>{ const li = document.createElement("li"); li.textContent = n; return li; }));
