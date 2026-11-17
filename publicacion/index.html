@@ -223,9 +223,16 @@ input,select,textarea{font:inherit;font-size:1.05rem;padding:12px 14px;border-ra
 .rsvp-notice{margin:0 auto 25px;max-width:390px;text-align:center;font-size:1.25rem;font-weight:500;line-height:1.18;color:var(--ink)}
 #rsvp form{max-width:none;margin:0;gap:14px}
 #rsvp .err{min-height:0}
-.rsvp-success{padding:11px 13px;border-radius:7px;background:#e3eee2;color:#536c53;font-family:var(--sans);font-size:.83rem;text-align:left}
+.rsvp-pass-name{font-family:var(--script);font-weight:400;font-size:clamp(2.2rem,8vw,2.8rem);color:var(--rose)}
+.rsvp-pass-detail{font-family:var(--sans);font-weight:400;font-size:.95rem;letter-spacing:.18em;text-transform:uppercase;color:var(--ink)}
+.rsvp-pass-members{list-style:none;margin:4px 0 0;padding:0;font-size:1.15rem;line-height:1.45;color:var(--ink)}
+.rsvp-pass-date{margin:12px auto 10px;padding-top:12px;max-width:300px;border-top:1px solid var(--line);font-style:italic;font-size:1.1rem;line-height:1.4;color:var(--soft)}
+.rsvp-share{margin-top:16px;width:auto!important;min-height:0!important;padding:11px 24px;font-size:.82rem}
+.rsvp-done{max-width:470px;margin:22px auto 0;padding:0 12px;text-align:center}
+.rsvp-done-title{font-family:var(--script);font-size:2.4rem;line-height:1.1;color:var(--rose)}
+.rsvp-done-text{margin-top:6px;font-style:italic;font-size:1.15rem;line-height:1.45;color:var(--soft)}
+.rsvp-done-link{max-width:360px;margin:12px auto 0;font-size:.8rem;line-height:1.5;color:var(--soft)}
 #rsvpSubmit{width:100%;margin-top:2px}
-#whatsappAfter{display:block;margin-top:10px;text-align:center;font-size:.78rem}
 .photo-share{max-width:440px;margin:0 auto;padding:24px;border:1px solid var(--line);border-radius:16px;background:var(--card)}
 .photo-share h3{font-family:var(--script);font-weight:400;font-size:2.2rem;color:var(--rose)}
 .photo-share p{margin-top:8px}
@@ -384,9 +391,15 @@ body{background-image:radial-gradient(rgba(216,27,115,.10) 1px,transparent 1px)}
     <div class="rsvp-pass" aria-label="Pase personalizado" hidden>
       <p class="rsvp-pass-kicker">Pase personalizado</p>
       <p class="rsvp-pass-name" id="rsvpGuestName">Querido invitado</p>
-      <p class="rsvp-pass-detail" id="rsvpSeatLimit">Pase personal</p>
-      <p class="rsvp-pass-detail" id="rsvpTable" role="status" aria-live="polite">Mesa por asignar</p>
-      <small id="rsvpTableStatus" class="sans" role="status" aria-live="polite"></small>
+      <ul class="rsvp-pass-members" id="rsvpMembers" hidden></ul>
+      <p class="rsvp-pass-date" id="rsvpDate"></p>
+      <p class="rsvp-pass-detail" id="rsvpTable">Mesa por asignar</p>
+    </div>
+    <div class="rsvp-done" id="rsvpDone" hidden>
+      <p class="rsvp-done-title" id="rsvpDoneTitle">¡Gracias!</p>
+      <p class="rsvp-done-text" id="rsvpSuccess" role="status" aria-live="polite"></p>
+      <button class="btn rsvp-share" id="sendWhatsApp" type="button">Enviar respuesta por WhatsApp</button>
+      <p class="rsvp-done-link sans" id="sendHint" role="status" aria-live="polite"></p>
     </div>
     <div class="rsvp-card">
       <p class="rsvp-notice">Confirma antes del 25 de noviembre de 2026.</p>
@@ -402,9 +415,7 @@ body{background-image:radial-gradient(rgba(216,27,115,.10) 1px,transparent 1px)}
           </select>
         </label>
         <p class="err" id="err" role="alert"></p>
-        <p class="rsvp-success" id="rsvpSuccess" role="status" aria-live="polite" hidden></p>
-        <button class="btn" id="rsvpSubmit" type="submit">Confirmar asistencia</button>
-        <a id="whatsappAfter" hidden target="_blank" rel="noopener">Enviar confirmación por WhatsApp</a>
+        <button class="btn" id="rsvpSubmit" type="submit">Enviar confirmación</button>
       </form>
     </div>
   </div>
@@ -555,15 +566,171 @@ document.getElementById("calBtn").addEventListener("click",()=>{
 });
 
 // RSVP en Supabase y WhatsApp
+// Modo "personal": enlace del panel con ?t=token. Modo "general": enlace sin token, se identifica por dispositivo.
+const EVENT_DATE = new Date(CFG.fecha);
+const capitalize = s => s.charAt(0).toUpperCase()+s.slice(1);
+const EVENT_DAY = capitalize(EVENT_DATE.toLocaleDateString("es-MX",{weekday:"long",day:"numeric",month:"long",year:"numeric"}));
+const EVENT_TIME = EVENT_DATE.toLocaleTimeString("es-MX",{hour:"numeric",minute:"2-digit",hour12:true});
+// Integrantes que se listan debajo del nombre del pase (p. ej. "Familia López").
+function passMembers(){
+  const names = Array.isArray(G.attendee_names) ? G.attendee_names : [];
+  if(G.status!=="confirmado" || !names.length) return [];
+  return names.join(", ").toLowerCase()===String(G.name||"").trim().toLowerCase() ? [] : names;
+}
+function passTitle(){
+  const names = Array.isArray(G.attendee_names) ? G.attendee_names : [];
+  return G.name && G.name!=="Querido invitado" ? G.name : names.join(", ");
+}
+const WA_DISPLAY = CFG.whatsapp.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})$/,"+$1 $2 $3 $4");
+// Texto corto sin emojis: solo abre el chat cuando el navegador no permite compartir la imagen directamente.
+const whatsappChat = () => `https://wa.me/${CFG.whatsapp}?text=${encodeURIComponent(`Hola, comparto mi respuesta para los XV años de ${CFG.nombre}.`)}`;
+function isMany(){
+  const title = passTitle();
+  return G.status==="confirmado"
+    ? (G.attendee_names||[]).length>1 || /^familia\b/i.test(title)
+    : /familia|,| y /i.test(title);
+}
+function responseText(){
+  const many = isMany();
+  return G.status==="confirmado"
+    ? {
+        heading: many ? "Confirmamos nuestra asistencia" : "Confirmo mi asistencia",
+        body: "Con mucho gusto y gratitud por su amable invitación, será un honor acompañarles en esta noche tan especial."
+      }
+    : {
+        heading: many ? "No podremos asistir" : "No podré asistir",
+        body: many
+          ? "Agradecemos de corazón su amable invitación. Lamentablemente no nos será posible acompañarles; les deseamos una noche maravillosa, llena de alegría y bendiciones."
+          : "Agradezco de corazón su amable invitación. Lamentablemente no me será posible acompañarles; les deseo una noche maravillosa, llena de alegría y bendiciones."
+      };
+}
+// Dibuja la respuesta como imagen con el estilo de la invitación.
+async function passImage(){
+  const fonts = ['400 80px "Great Vibes"','400 40px "Cormorant Garamond"','italic 400 40px "Cormorant Garamond"','400 30px "Jost"'];
+  try{ await Promise.all(fonts.map(f=>document.fonts.load(f))); }catch(_){}
+  // La tarjeta crece si hay muchos integrantes para que nada se encime.
+  const memberCount = G.status==="confirmado" ? passMembers().length : 0;
+  const memberLines = Math.min(memberCount,6) + (memberCount>6 ? 1 : 0);
+  const W = 1080, H = 1350 + (memberLines>3 ? (memberLines-3)*46+30 : 0), c = document.createElement("canvas");
+  c.width = W; c.height = H;
+  const x = c.getContext("2d");
+  const rr = (l,t,w,h,r) => { x.beginPath(); x.moveTo(l+r,t); x.arcTo(l+w,t,l+w,t+h,r); x.arcTo(l+w,t+h,l,t+h,r); x.arcTo(l,t+h,l,t,r); x.arcTo(l,t,l+w,t,r); x.closePath(); };
+  const bg = x.createLinearGradient(0,0,W,H); bg.addColorStop(0,"#ffe0ec"); bg.addColorStop(1,"#ffc2da");
+  x.fillStyle = bg; x.fillRect(0,0,W,H);
+  x.fillStyle = "rgba(216,27,115,.10)";
+  for(let py=20;py<H;py+=36) for(let px=20;px<W;px+=36){ x.beginPath(); x.arc(px,py,2,0,6.283); x.fill(); }
+  x.shadowColor = "rgba(74,15,46,.18)"; x.shadowBlur = 40; x.shadowOffsetY = 16;
+  rr(90,90,W-180,H-180,40); x.fillStyle = "#fff7fa"; x.fill();
+  x.shadowColor = "transparent";
+  x.lineWidth = 3; x.strokeStyle = "#d81b73"; x.stroke();
+  rr(112,112,W-224,H-224,30); x.lineWidth = 1.5; x.strokeStyle = "#c9973f"; x.stroke();
+  x.textAlign = "center"; x.textBaseline = "alphabetic";
+  const center = W/2;
+  const line = y => { const g = x.createLinearGradient(center-180,0,center+180,0); g.addColorStop(0,"rgba(201,151,63,0)"); g.addColorStop(.5,"#c9973f"); g.addColorStop(1,"rgba(201,151,63,0)"); x.fillStyle = g; x.fillRect(center-180,y,360,2); };
+  const fit = (text,font,size,max) => { let s = size; do{ x.font = font.replace("%",s+"px"); s-=2; }while(x.measureText(text).width>max && s>18); };
+  const wrap = (text,font,max,lh,y) => {
+    x.font = font;
+    const words = text.split(" "), lines = [];
+    let current = "";
+    words.forEach(w=>{ const t = current ? current+" "+w : w; if(x.measureText(t).width>max && current){ lines.push(current); current = w; } else current = t; });
+    if(current) lines.push(current);
+    lines.forEach((l,i)=>x.fillText(l,center,y+i*lh));
+    return y+lines.length*lh;
+  };
+  const attending = G.status==="confirmado";
+  const {heading,body} = responseText();
+  const title = passTitle();
+  x.fillStyle = "#d81b73"; x.font = '400 60px "Great Vibes", cursive'; x.fillText("XV años de",center,240);
+  fit(CFG.nombre,'400 % "Great Vibes", cursive',120,760); x.fillText(CFG.nombre,center,360);
+  line(410);
+  x.fillStyle = "#4a0f2e"; fit(heading,'500 % "Cormorant Garamond", serif',66,780); x.fillText(heading,center,500);
+  x.fillStyle = "#8a3a5e";
+  let y = wrap(body,'italic 400 38px "Cormorant Garamond", serif',720,50,575);
+  if(attending){
+    y += 30;
+    x.fillStyle = "#d81b73"; fit(title,'400 % "Great Vibes", cursive',84,780); x.fillText(title,center,y+40); y += 100;
+    const members = passMembers(), shown = members.slice(0,6);
+    x.fillStyle = "#4a0f2e";
+    shown.forEach(n=>{ fit(n,'400 % "Cormorant Garamond", serif',38,760); x.fillText(n,center,y); y += 46; });
+    if(members.length>shown.length){ x.font = 'italic 400 32px "Cormorant Garamond", serif'; x.fillText(`y ${members.length-shown.length} más`,center,y); y += 46; }
+    y += 10; line(y); y += 64;
+    x.fillStyle = "#8a3a5e"; fit(EVENT_DAY,'italic 400 % "Cormorant Garamond", serif',42,780); x.fillText(EVENT_DAY,center,y);
+    y += 54; x.font = 'italic 400 42px "Cormorant Garamond", serif'; x.fillText(EVENT_TIME,center,y);
+    x.fillStyle = "#d81b73"; x.font = '400 62px "Great Vibes", cursive'; x.fillText("Nos vemos pronto",center,H-170);
+  }else{
+    y += 40; line(y); y += 90;
+    x.fillStyle = "#8a3a5e"; x.font = 'italic 400 40px "Cormorant Garamond", serif'; x.fillText("Con cariño,",center,y);
+    x.fillStyle = "#d81b73"; fit(title,'400 % "Great Vibes", cursive',88,780); x.fillText(title,center,y+100);
+  }
+  return new Promise((resolve,reject)=>c.toBlob(b=>b?resolve(b):reject(new Error("No se pudo crear la imagen.")),"image/png"));
+}
+// La imagen se prepara en cuanto hay respuesta, para que el toque de "Enviar" la comparta al instante.
+let responseFile = null;
+function prepareResponseImage(){
+  responseFile = passImage()
+    .then(blob=>new File([blob],`respuesta-xv-${CFG.nombre.toLowerCase()}.png`,{type:"image/png"}))
+    .catch(error=>{ console.error("No se pudo crear la imagen de la respuesta.",error); return null; });
+  return responseFile;
+}
+function canShareFiles(){
+  try{ return !!(navigator.canShare && navigator.canShare({files:[new File([""],"x.png",{type:"image/png"})]})); }
+  catch(_){ return false; }
+}
+const sendHint = document.getElementById("sendHint");
+async function sendResponse(){
+  const button = document.getElementById("sendWhatsApp");
+  button.disabled = true;
+  try{
+    const file = await (responseFile || prepareResponseImage());
+    if(!file) throw new Error("No se pudo crear la imagen.");
+    if(canShareFiles()){
+      // Celular y tablet: menú de compartir con la imagen; se elige WhatsApp y el contacto.
+      await navigator.share({files:[file]});
+      sendHint.textContent = `Si aún no la envías, toca de nuevo el botón y elige WhatsApp. Envíala al ${WA_DISPLAY}.`;
+      return;
+    }
+    // Computadora: copia la imagen, abre el chat del número acordado y solo hay que pegarla.
+    let copied = false;
+    try{
+      await navigator.clipboard.write([new ClipboardItem({"image/png":file})]);
+      copied = true;
+    }catch(_){
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(file); a.download = file.name; a.click();
+      setTimeout(()=>URL.revokeObjectURL(a.href),4000);
+    }
+    sendHint.textContent = copied
+      ? "La imagen ya está copiada. En el chat de WhatsApp pega con Ctrl+V y envíala."
+      : "La imagen se descargó. Adjúntala en el chat de WhatsApp y envíala.";
+    if(!window.open(whatsappChat(),"_blank","noopener")) location.href = whatsappChat();
+  }catch(error){
+    if(error && error.name==="AbortError") return;
+    console.error("No se pudo enviar la respuesta por WhatsApp.",error);
+    sendHint.textContent = `No se pudo abrir WhatsApp.`;
+  }finally{
+    button.disabled = false;
+  }
+}
+document.getElementById("sendWhatsApp").addEventListener("click",sendResponse);
+function showRsvpDone(){
+  const attending = G.status==="confirmado";
+  document.querySelector(".rsvp-card").hidden = true;
+  document.getElementById("rsvpDoneTitle").textContent = attending ? "¡Gracias por confirmar!" : "¡Gracias por avisarnos!";
+  document.getElementById("rsvpSuccess").textContent = attending
+    ? "Tu asistencia ya está registrada, no es necesario volver a confirmar."
+    : "Lamentamos que no puedas acompañarnos. Tu respuesta ya está registrada, no es necesario volver a confirmar.";
+  sendHint.textContent = canShareFiles()
+    ? `Tu respuesta se enviará como imagen.`
+    : `Tu respuesta se enviará como imagen.`;
+  document.getElementById("rsvpDone").hidden = false;
+  prepareResponseImage();
+}
 document.getElementById("form").addEventListener("submit",async e=>{
   e.preventDefault();
-  const success = document.getElementById("rsvpSuccess");
-  success.hidden = true;
-  whatsappAfter.hidden = true;
   const names = document.getElementById("fNames").value.split(/[,\n;]+/).map(name=>name.trim()).filter(Boolean);
   err.textContent = "";
   const attending = fAtt.value==="sí";
-  if(!sb || !TOK){
+  if(!sb || (MODE==="general" && !DEVICE)){
     err.textContent = "No se ha podido realizar su confirmación.";
     return;
   }
@@ -572,48 +739,44 @@ document.getElementById("form").addEventListener("submit",async e=>{
     fAtt.focus();
     return;
   }
-  if(attending && !names.length){
-    err.textContent = "Escribe el nombre de cada persona que asistirá.";
+  if(!names.length && (attending || MODE==="general")){
+    err.textContent = attending ? "Escribe el nombre de cada persona que asistirá." : "Escribe tu nombre para registrar tu respuesta.";
     document.getElementById("fNames").focus();
     return;
   }
   const attendeeNames = attending ? names : [];
-  const txt = attending
-    ? `Hola, confirmo mi asistencia a los XV años de ${CFG.nombre}. Asistiremos: ${names.join(", ")}.`
-    : `Hola, no podré asistir a los XV años de ${CFG.nombre}.`;
-  const whatsappUrl = `https://wa.me/${CFG.whatsapp}?text=${encodeURIComponent(txt)}`;
+  const status = attending ? "confirmado" : "rechazado";
   const button = document.getElementById("rsvpSubmit");
   button.disabled = true;
   button.textContent = "Registrando...";
-  let submitted = false;
   try{
-    const {data,error} = await sb.rpc("rsvp_with_names",{
-      p_token:TOK,
-      p_status:attending?"confirmado":"rechazado",
-      p_attendee_names:attendeeNames
-    });
-    if(error) throw error;
-    if(data !== true) throw new Error("No se encontró la invitación para registrar la respuesta.");
-    G.status = attending ? "confirmado" : "rechazado";
-    G.companions = attending ? attendeeNames.length-1 : 0;
-    G.attendee_names = attendeeNames;
+    if(MODE==="personal"){
+      const {data,error} = await sb.rpc("rsvp_with_names",{p_token:TOK,p_status:status,p_attendee_names:attendeeNames});
+      if(error) throw error;
+      if(data !== true) throw new Error("No se encontró la invitación para registrar la respuesta.");
+      G.status = status;
+      G.companions = attending ? attendeeNames.length-1 : 0;
+      G.attendee_names = attendeeNames;
+    }else{
+      const {data,error} = await sb.rpc("rsvp_open",{p_device:DEVICE,p_status:status,p_attendee_names:names,p_phone:null});
+      if(error) throw error;
+      if(!data || !data.token) throw new Error("No se recibió el pase generado.");
+      G = {...G,...data,attendee_names:Array.isArray(data.attendee_names)?data.attendee_names:[]};
+      guestToken = data.token;
+      startTableRefresh();
+    }
     renderGuestPass();
-    whatsappAfter.href = whatsappUrl;
-    whatsappAfter.hidden = false;
-    success.textContent = "Se ha registrado su confirmación.";
-    success.hidden = false;
-    button.textContent = attending ? "CONFIRMADO ✓" : "RESPUESTA REGISTRADA ✓";
-    button.classList.add("is-confirmed");
-    submitted = true;
+    showRsvpDone();
+    document.getElementById("rsvp").scrollIntoView({behavior:"smooth",block:"start"});
+    // Si el navegador aún permite compartir sin otro toque, abre el menú para enviar la imagen.
+    if(navigator.userActivation && navigator.userActivation.isActive && canShareFiles()) sendResponse();
   }catch(error){
     console.error("No se pudo registrar la respuesta del invitado.",error);
-    err.textContent = "No se ha podido realizar su confirmación.";
-  }finally{
+    err.textContent = error && /capacidad|nombre|WhatsApp|opción/i.test(error.message||"")
+      ? error.message
+      : "No se ha podido realizar su confirmación.";
     button.disabled = false;
-    if(!submitted){
-      button.textContent = "Confirmar asistencia";
-      button.classList.remove("is-confirmed");
-    }
+    button.textContent = "Enviar confirmación";
   }
 });
 
@@ -661,41 +824,57 @@ function burst(){ if(reduce) return; cv.classList.remove("faded"); for(let i=0;i
 const qs = new URLSearchParams(location.search), TOK = qs.get("t");
 const LIVE = window.supabase && /supabase\.co/.test(CFG.supabaseUrl) && !/TU-PROYECTO/.test(CFG.supabaseUrl);
 const sb = LIVE ? supabase.createClient(CFG.supabaseUrl, CFG.supabaseKey) : null;
+const MODE = TOK ? "personal" : "general";
+const DEVICE = (()=>{
+  if(TOK) return null;
+  const KEY = "xv-device";
+  let value = null;
+  try{ value = localStorage.getItem(KEY); }catch(_){}
+  if(!value || value.length<16 || value.length>80){
+    value = (crypto.randomUUID ? crypto.randomUUID() : Array.from(crypto.getRandomValues(new Uint8Array(16)),b=>b.toString(16).padStart(2,"0")).join(""));
+    try{ localStorage.setItem(KEY,value); }catch(_){}
+  }
+  return value;
+})();
+let guestToken = TOK, refreshIv = 0;
 let G = {name: qs.get("invitado")||"Querido invitado"};
-const whatsappAfter = document.getElementById("whatsappAfter");
 function firstName(name){
   return String(name??"").trim().split(/\s+/)[0] || "Querido invitado";
 }
+function startTableRefresh(){
+  if(refreshIv || !guestToken || !sb) return;
+  refreshIv = setInterval(refreshGuestTable,30000);
+  document.addEventListener("visibilitychange",()=>{if(!document.hidden) refreshGuestTable();});
+}
 async function refreshGuestTable(){
-  if(!TOK || !sb || document.hidden) return;
+  if(!guestToken || !sb || document.hidden) return;
   try{
-    const {data,error} = await sb.rpc("get_guest",{p_token:TOK});
+    const {data,error} = await sb.rpc("get_guest",{p_token:guestToken});
     if(error) throw error;
     if(!data) throw new Error("No se encontró la invitación.");
-    const previousTable = G.table_name ?? null;
     G = {...G,...data,table_name:typeof data.table_name==="string" ? data.table_name : null};
     renderGuestPass();
-    document.getElementById("rsvpTableStatus").textContent = "";
-    if(previousTable!==G.table_name){
-      document.getElementById("rsvpTableStatus").textContent = G.table_name
-        ? "La asignación de tu mesa se actualizó."
-        : "Tu pase no tiene una mesa asignada.";
-    }
   }catch(error){
     console.error("No se pudo actualizar la mesa asignada.",error);
-    document.getElementById("rsvpTableStatus").textContent = "No se pudo actualizar la mesa. Se volverá a intentar.";
   }
+}
+function tableLabel(name){
+  if(!name) return "Mesa por asignar";
+  const number = String(name).match(/\d+/);
+  return number ? `Mesa No. ${Number(number[0])}` : String(name);
 }
 function renderGuestPass(){
   const attendeeNames = Array.isArray(G.attendee_names) ? G.attendee_names : [];
   const confirmed = G.status==="confirmado";
-  const count = attendeeNames.length || Number(G.companions||0)+1;
   const pass = document.querySelector(".rsvp-pass");
   pass.hidden = !confirmed;
   guestName.textContent = firstName(confirmed && attendeeNames.length ? attendeeNames[0] : G.name);
-  document.getElementById("rsvpGuestName").textContent = G.name;
-  if(confirmed) document.getElementById("rsvpSeatLimit").textContent = `Pase para ${count} ${count===1?"persona":"personas"}`;
-  document.getElementById("rsvpTable").textContent = G.table_name ? `Mesa: ${G.table_name}` : "Mesa por asignar";
+  document.getElementById("rsvpGuestName").textContent = passTitle();
+  const members = passMembers(), list = document.getElementById("rsvpMembers");
+  list.replaceChildren(...members.map(n=>{ const li = document.createElement("li"); li.textContent = n; return li; }));
+  list.hidden = !members.length;
+  document.getElementById("rsvpDate").textContent = `${EVENT_DAY} · ${EVENT_TIME}`;
+  document.getElementById("rsvpTable").textContent = tableLabel(G.table_name);
   document.querySelector(".rsvp-pass").classList.toggle("is-confirmed",confirmed && attendeeNames.length>0);
 }
 async function loadGuest(){
@@ -716,22 +895,23 @@ async function loadGuest(){
       document.querySelectorAll("#form input,#form select,#form textarea,#form button").forEach(field=>{field.disabled=true;});
       return;
     }
+  }else if(sb && DEVICE){
+    // Enlace general: si este navegador ya confirmó, recupera su pase.
+    try{
+      const {data,error} = await sb.rpc("get_guest_device",{p_device:DEVICE});
+      if(error) throw error;
+      if(data && data.token){ G = {...G,...data}; guestToken = data.token; }
+    }catch(error){
+      console.error("No se pudo recuperar la confirmación de este dispositivo.",error);
+    }
   }
   G.table_name = typeof G.table_name==="string" ? G.table_name : null;
   G.attendee_names = Array.isArray(G.attendee_names) ? G.attendee_names : [];
   renderGuestPass();
-  if(G.status==="confirmado"){
-    fAtt.value = "sí";
-    document.getElementById("fNames").value = G.attendee_names.join(", ");
-  }else if(G.status==="rechazado"){
-    fAtt.value = "no";
-  }
+  if(G.status==="confirmado" || G.status==="rechazado") showRsvpDone();
+  startTableRefresh();
 }
 loadGuest();
-if(TOK && sb){
-  setInterval(refreshGuestTable,30000);
-  document.addEventListener("visibilitychange",()=>{if(!document.hidden) refreshGuestTable();});
-}
 
 /* ===== Chroma key y reproducción de la princesa ===== */
 const princessSource = document.getElementById("princessSource");

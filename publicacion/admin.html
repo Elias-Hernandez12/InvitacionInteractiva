@@ -63,22 +63,36 @@ th,td{text-align:left;padding:8px 6px;border-bottom:1px solid var(--line);white-
 .tables-form{display:grid;grid-template-columns:minmax(0,1fr) 120px auto;align-items:center;gap:10px;margin:0 0 18px;padding:14px;border:1px solid var(--line);border-radius:16px;background:linear-gradient(135deg,#fff8fb,#fff)}
 .tables-form input{min-width:0;min-height:42px}
 .tables-form button{min-height:42px;padding-inline:18px;white-space:nowrap}
-.tables-card .scroll{border:1px solid var(--line);border-radius:14px}
-.tables-card table{min-width:620px}
-.tables-card th{padding:11px 10px;background:#fff6fa;color:var(--soft);font-size:.72rem;font-weight:500;letter-spacing:.08em;text-transform:uppercase}
-.tables-card td{padding:11px 10px;vertical-align:middle}
-.tables-card tbody tr:hover{background:#fffafd}
-.tables-card tbody tr:last-child td{border-bottom:0}
-.tables-card tbody tr[data-table-drop]{transition:background .15s ease,box-shadow .15s ease}
-.tables-card tbody tr.drop-target{background:#fff0f6;box-shadow:inset 0 0 0 2px var(--rose)}
-.tables-card select{min-width:120px}
-.guest-row{cursor:grab}
-.guest-row:active{cursor:grabbing}
-.guest-row.is-dragging{opacity:.42}
-.drag-handle{color:var(--rose);font-size:1.15rem;letter-spacing:-.15em;user-select:none;white-space:nowrap}
-.capacity-cell{display:grid;gap:5px;min-width:92px}
+.capacity-cell{display:grid;gap:5px;min-width:92px;font-size:.85rem;color:var(--soft)}
 .capacity-cell progress{width:100%;height:6px;accent-color:var(--rose)}
-.tables-empty{text-align:center;color:var(--soft);padding:22px!important}
+.tables-empty{grid-column:1/-1;text-align:center;color:var(--soft);padding:22px;border:1px dashed var(--line);border-radius:14px}
+.tray{margin:0 0 16px;padding:12px 14px;border:1px dashed var(--line);border-radius:16px;background:#fffafd}
+.tray-title{margin:0 0 8px;font-size:.72rem;font-weight:500;letter-spacing:.14em;text-transform:uppercase;color:var(--soft)}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chips:empty::after{content:attr(data-empty);color:var(--soft);font-size:.85rem}
+.chip{display:inline-flex;align-items:center;gap:2px;border:1px solid var(--line);border-radius:20px;background:#fff;color:var(--ink);font-size:.86rem;line-height:1.2;transition:background .15s ease,border-color .15s ease}
+.chip button{background:none;color:inherit;border:0;border-radius:20px;padding:7px 10px;font-size:inherit}
+.chip button+button{padding-left:4px;color:var(--soft)}
+.chip small{margin-left:4px;color:var(--rose);font-weight:500}
+.chip.picked{background:var(--rose);border-color:var(--rose);color:#fff}
+.chip.picked small,.chip.picked button+button{color:#fff}
+.pick-hint{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:0 0 12px;padding:10px 14px;border-radius:12px;background:#fff0f6;color:var(--ink);font-size:.9rem}
+.pick-hint button{padding:6px 12px;font-size:.82rem}
+.table-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:12px}
+.tcard{display:grid;gap:10px;align-content:start;padding:14px;border:1px solid var(--line);border-radius:16px;background:#fff;transition:background .15s ease,border-color .15s ease,box-shadow .15s ease}
+.tcard.full{border-color:#e7a1b8}
+.tcard-head{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.tcard-head b{font-size:1.05rem}
+.tcard-head button{padding:4px 10px;font-size:.78rem}
+.tcard select{width:100%;font-size:.88rem;color:var(--soft)}
+.table-grid.picking .tcard{cursor:pointer;border-style:dashed;border-color:var(--rose)}
+.table-grid.picking .tcard:hover{background:#fff0f6;box-shadow:0 6px 16px rgba(216,27,115,.15)}
+.chip button[data-pick]{cursor:grab;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;touch-action:manipulation}
+.chip.is-dragging{opacity:.35}
+.drag-ghost{position:fixed;left:0;top:0;z-index:30;pointer-events:none;border-color:var(--rose);box-shadow:0 12px 28px rgba(74,15,46,.28);will-change:transform}
+body.dragging,body.dragging *{cursor:grabbing!important;user-select:none;-webkit-user-select:none}
+.tcard.drop-target,.tray.drop-target{background:#fff0f6;border-color:var(--rose);border-style:solid;box-shadow:inset 0 0 0 2px var(--rose)}
+@media(pointer:coarse){.chip button{padding:10px 13px}.chip{font-size:.92rem}}
 @media(max-width:640px){
   .wrap{padding:10px}
   .card{padding:14px}
@@ -125,11 +139,12 @@ th,td{text-align:left;padding:8px 6px;border-bottom:1px solid var(--line);white-
   <div class="grid">
     <div class="card tables-card">
       <div class="tables-heading">
-        <div><p class="tables-eyebrow">Organización del evento</p><h3>Mesas</h3><p>Arrastra una invitación hasta una mesa para asignarla. La capacidad se valida con los asistentes confirmados.</p></div>
-        <div class="tables-mark" aria-hidden="true">01</div>
+        <div><p class="tables-eyebrow">Organización del evento</p><h3>Mesas</h3><p><b>Computadora:</b> arrastra la invitación hasta la mesa. <b>Celular o tablet:</b> mantén presionada la invitación un momento y arrástrala. También puedes tocarla y después tocar la mesa. Para quitarla de una mesa, arrástrala de vuelta a «Sin mesa» o toca la ✕.</p></div>
       </div>
       <form class="tables-form" id="tf"><input id="tn" placeholder="Nombre (ej. Mesa 1)" required aria-label="Nombre de la mesa"><input id="tc" type="number" min="1" value="10" aria-label="Capacidad de la mesa"><button>Agregar mesa</button></form>
-      <div class="scroll"><table><thead><tr><th>Mesa</th><th>Capacidad</th><th>Asistentes / capacidad</th><th>Pases asignados</th><th></th></tr></thead><tbody id="tb"></tbody></table></div>
+      <div class="tray" data-tray><p class="tray-title" id="trayTitle">Sin mesa</p><div class="chips" id="ua" data-empty="Todas las invitaciones tienen mesa."></div></div>
+      <div class="pick-hint" id="pickHint" role="status" aria-live="polite" hidden><span id="pickText"></span><button type="button" class="g" id="pickCancel">Cancelar</button></div>
+      <div class="table-grid" id="tb"></div>
     </div>
     <div class="card"><h3 style="margin-top:0">Invitaciones</h3>
       <p>La respuesta se guarda al confirmar. WhatsApp es opcional; el panel no puede verificar si el mensaje se envió.</p>
@@ -167,14 +182,30 @@ function render(){
     ["Pases creados",G.length,"Total de invitaciones"],
     ["Respuestas recibidas",confirmed.length+declined,`${confirmed.length} confirmadas · ${declined} declinadas`],
     ["Personas que asistirán",attendeeCount,"Suma de asistentes confirmados"],
-    ["Pendientes",pending,"Aún no responden"]
+    ["Sin responder",pending,"Aún no confirman ni rechazan"]
   ];
   $("stats").innerHTML = metrics.map(([label,value,detail])=>`<div class="stat"><b>${value}</b>${label}<small>${detail}</small></div>`).join("");
-  const statusLabel = g => g.status==="confirmado" ? "Confirmada" : g.status==="rechazado" ? "No asistirá" : "Pendiente";
-  const occupancy = new Map(T.map(t=>[t.id,{attendees:0,passes:0}]));
-  G.forEach(g=>{const stats=occupancy.get(g.table_id);if(stats){if(g.status==="confirmado")stats.attendees+=Array.isArray(g.attendee_names)&&g.attendee_names.length?g.attendee_names.length:g.companions+1;stats.passes++;}});
-  $("tb").innerHTML = T.length ? T.map(t=>{const stats=occupancy.get(t.id);return `<tr data-table-drop="${t.id}" aria-label="Suelta aquí para asignar a ${esc(t.name)}"><td>${esc(t.name)}</td><td>${t.capacity}</td><td><div class="capacity-cell"><span>${stats.attendees} de ${t.capacity}</span><progress max="${t.capacity}" value="${Math.min(stats.attendees,t.capacity)}"></progress></div></td><td>${stats.passes}</td><td><button class="g" data-a="dt" data-id="${t.id}" aria-label="Eliminar mesa ${esc(t.name)}">Eliminar</button></td></tr>`;}).join("") : `<tr><td class="tables-empty" colspan="5">Todavía no hay mesas. Agrega la primera arriba.</td></tr>`;
-  $("gb").innerHTML = G.map(g=>`<tr class="guest-row" draggable="true" data-guest-drag="${g.id}"><td><span class="drag-handle" aria-hidden="true">⠿</span> ${esc(g.name)}</td><td><span class="state ${g.status}">${statusLabel(g)}</span></td><td>${g.status==="confirmado"?(Array.isArray(g.attendee_names)&&g.attendee_names.length?g.attendee_names.length:g.companions+1):"—"}</td>
+  const statusLabel = g => g.status==="confirmado" ? "Confirmada" : g.status==="rechazado" ? "No asistirá" : "Sin responder";
+  const people = g => Array.isArray(g.attendee_names)&&g.attendee_names.length ? g.attendee_names.length : g.companions+1;
+  const chipTag = g => g.status==="confirmado" ? `${people(g)} pers.` : g.status==="rechazado" ? "no asistirá" : "sin responder";
+  if(picked && !G.some(g=>g.id===picked)) picked = null;
+  const occupancy = new Map(T.map(t=>[t.id,{attendees:0,guests:[]}]));
+  G.forEach(g=>{const stats=occupancy.get(g.table_id);if(stats){if(g.status==="confirmado")stats.attendees+=people(g);stats.guests.push(g);}});
+  const free = G.filter(g=>!occupancy.has(g.table_id) && g.status!=="rechazado");
+  $("trayTitle").textContent = `Sin mesa · ${free.length}`;
+  $("ua").innerHTML = free.map(g=>`<span class="chip${picked===g.id?" picked":""}"><button type="button" data-pick="${g.id}" aria-pressed="${picked===g.id}">${esc(g.name)}<small>${chipTag(g)}</small></button></span>`).join("");
+  const freeOptions = free.map(g=>`<option value="${g.id}">${esc(g.name)} · ${chipTag(g)}</option>`).join("");
+  $("tb").innerHTML = T.length ? T.map(t=>{const stats=occupancy.get(t.id);return `<div class="tcard${stats.attendees>=t.capacity?" full":""}" data-table="${t.id}">
+      <div class="tcard-head"><b>${esc(t.name)}</b><button type="button" class="g" data-a="dt" data-id="${t.id}" aria-label="Eliminar mesa ${esc(t.name)}">Eliminar</button></div>
+      <div class="capacity-cell"><span>${stats.attendees} de ${t.capacity} personas</span><progress max="${t.capacity}" value="${Math.min(stats.attendees,t.capacity)}"></progress></div>
+      <div class="chips" data-empty="Sin invitaciones todavía.">${stats.guests.map(g=>`<span class="chip${picked===g.id?" picked":""}"><button type="button" data-pick="${g.id}" aria-pressed="${picked===g.id}" title="Toca para moverla a otra mesa">${esc(g.name)}<small>${chipTag(g)}</small></button><button type="button" data-unassign="${g.id}" aria-label="Quitar ${esc(g.name)} de ${esc(t.name)}">✕</button></span>`).join("")}</div>
+      <select data-add-table="${t.id}" aria-label="Agregar invitación a ${esc(t.name)}"${free.length?"":" disabled"}><option value="">+ Agregar invitación…</option>${freeOptions}</select>
+    </div>`;}).join("") : `<p class="tables-empty">Todavía no hay mesas. Agrega la primera arriba.</p>`;
+  const pg = G.find(g=>g.id===picked);
+  $("tb").classList.toggle("picking",!!pg);
+  $("pickHint").hidden = !pg;
+  if(pg) $("pickText").textContent = `Toca la mesa para sentar a «${pg.name}».`;
+  $("gb").innerHTML = G.map(g=>`<tr><td>${esc(g.name)}</td><td><span class="state ${g.status}">${statusLabel(g)}</span></td><td>${g.status==="confirmado"?people(g):"—"}</td>
     <td><select data-assignment="${g.id}" aria-label="Asignar mesa a ${esc(g.name)}"><option value="">Sin asignar</option>${T.map(t=>`<option value="${t.id}"${g.table_id===t.id?" selected":""}>${esc(t.name)}</option>`).join("")}</select></td>
     <td><button class="g" data-a="cp" data-id="${g.id}">Copiar enlace</button></td>
     <td><button class="g" data-a="qr" data-id="${g.id}">QR</button></td>
@@ -183,55 +214,117 @@ function render(){
 async function run(p){ const {error} = await p; if(error){ alert(error.message); return; } await load(); }
 $("gf").onsubmit = e => { e.preventDefault(); run(sb.from("guests").insert({name:gn.value.trim()})); gn.value=""; };
 $("tf").onsubmit = e => { e.preventDefault(); run(sb.from("event_tables").insert({name:$("tn").value.trim(),capacity:+$("tc").value})); $("tn").value=""; };
-document.addEventListener("dragstart",e=>{
-  const row=e.target.closest("[data-guest-drag]");
-  if(!row||e.target.closest("button,select,a,input")){e.preventDefault();return;}
-  e.dataTransfer.effectAllowed="move";
-  e.dataTransfer.setData("text/plain",row.dataset.guestDrag);
-  row.classList.add("is-dragging");
-});
-document.addEventListener("dragend",e=>{
-  const row=e.target.closest("[data-guest-drag]");
-  if(row) row.classList.remove("is-dragging");
-  document.querySelectorAll(".drop-target").forEach(target=>target.classList.remove("drop-target"));
-});
-document.addEventListener("dragover",e=>{
-  const target=e.target.closest("[data-table-drop]");
-  if(!target) return;
-  e.preventDefault();
-  e.dataTransfer.dropEffect="move";
-  target.classList.add("drop-target");
-});
-document.addEventListener("dragleave",e=>{
-  const target=e.target.closest("[data-table-drop]");
-  if(target&&!target.contains(e.relatedTarget)) target.classList.remove("drop-target");
-});
-document.addEventListener("drop",e=>{
-  const target=e.target.closest("[data-table-drop]");
-  if(!target) return;
-  e.preventDefault();
-  target.classList.remove("drop-target");
-  const guestId=e.dataTransfer.getData("text/plain");
-  const select=document.querySelector(`[data-assignment="${CSS.escape(guestId)}"]`);
-  if(!select) return;
-  select.value=target.dataset.tableDrop;
-  select.dispatchEvent(new Event("change",{bubbles:true}));
-});
-document.addEventListener("change",async e=>{
-  const select=e.target.closest("[data-assignment]");
-  if(!select) return;
-  const g=G.find(x=>x.id===select.dataset.assignment);
-  if(!g) return;
-  select.disabled=true;
+/* ===== Asignación de mesas: tocar invitación y luego tocar mesa ===== */
+let picked = null, assigning = false;
+async function assign(guestId,tableId){
+  if(assigning) return;
+  assigning = true;
+  picked = null;
   try{
-    const {error}=await sb.rpc("assign_guest_table",{p_guest:g.id,p_table:select.value||null});
+    const {error}=await sb.rpc("assign_guest_table",{p_guest:guestId,p_table:tableId||null});
     if(error) throw error;
-    await load();
   }catch(error){
     console.error("No se pudo asignar la mesa a la invitación.",error);
     alert("No se pudo asignar la mesa: "+(error instanceof Error?error.message:String(error)));
+  }finally{
+    assigning = false;
     await load();
-  }finally{select.disabled=false;}
+  }
+}
+/* ===== Arrastrar con mouse, dedo o lápiz (computadora, celular y tablet) ===== */
+let drag = null, suppressClick = false;
+document.addEventListener("pointerdown",e=>{
+  const handle=e.target.closest("[data-pick]");
+  if(!handle || e.button>0 || assigning || drag) return;
+  drag = {id:handle.dataset.pick, chip:handle.closest(".chip"), x:e.clientX, y:e.clientY, lastX:e.clientX, lastY:e.clientY,
+          pid:e.pointerId, touch:e.pointerType!=="mouse", active:false, timer:0, ghost:null, over:null};
+  // En pantallas táctiles se mantiene presionado para no confundir el arrastre con el desplazamiento de la página.
+  if(drag.touch) drag.timer = setTimeout(()=>startDrag(),260);
+});
+function startDrag(){
+  if(!drag || drag.active || !drag.chip.isConnected) return;
+  drag.active = true;
+  if(navigator.vibrate) navigator.vibrate(15);
+  const r = drag.chip.getBoundingClientRect();
+  const ghost = drag.chip.cloneNode(true);
+  ghost.classList.remove("picked"); ghost.classList.add("drag-ghost"); ghost.style.width = r.width+"px";
+  document.body.appendChild(ghost);
+  drag.ghost = ghost; drag.dx = drag.x-r.left; drag.dy = drag.y-r.top;
+  drag.chip.classList.add("is-dragging");
+  document.body.classList.add("dragging");
+  moveGhost(drag.lastX,drag.lastY);
+  requestAnimationFrame(autoScroll);
+}
+function moveGhost(x,y){
+  drag.lastX = x; drag.lastY = y;
+  drag.ghost.style.transform = `translate(${x-drag.dx}px,${y-drag.dy}px) rotate(-2deg)`;
+  const el = document.elementFromPoint(x,y);
+  const target = el && (el.closest("[data-table]") || el.closest("[data-tray]"));
+  if(target!==drag.over){
+    if(drag.over) drag.over.classList.remove("drop-target");
+    drag.over = target;
+    if(target) target.classList.add("drop-target");
+  }
+}
+function autoScroll(){
+  if(!drag || !drag.active) return;
+  const edge = 80, y = drag.lastY, h = innerHeight;
+  const speed = y<edge ? -(edge-y)/3 : y>h-edge ? (y-(h-edge))/3 : 0;
+  if(speed){ scrollBy(0,speed); moveGhost(drag.lastX,drag.lastY); }
+  requestAnimationFrame(autoScroll);
+}
+document.addEventListener("pointermove",e=>{
+  if(!drag || e.pointerId!==drag.pid) return;
+  const moved = Math.hypot(e.clientX-drag.x,e.clientY-drag.y);
+  if(!drag.active){
+    if(drag.touch){ if(moved>10){ clearTimeout(drag.timer); drag = null; } return; }
+    drag.lastX = e.clientX; drag.lastY = e.clientY;
+    if(moved>6) startDrag(); else return;
+  }
+  moveGhost(e.clientX,e.clientY);
+});
+document.addEventListener("touchmove",e=>{ if(drag && drag.active) e.preventDefault(); },{passive:false});
+document.addEventListener("contextmenu",e=>{ if(e.target.closest("[data-pick]")) e.preventDefault(); });
+function endDrag(e){
+  if(!drag || e.pointerId!==drag.pid) return;
+  clearTimeout(drag.timer);
+  const d = drag; drag = null;
+  if(!d.active) return;
+  suppressClick = true; setTimeout(()=>{ suppressClick = false; },60);
+  d.ghost.remove();
+  d.chip.classList.remove("is-dragging");
+  document.body.classList.remove("dragging");
+  if(d.over) d.over.classList.remove("drop-target");
+  if(e.type==="pointerup" && d.over){
+    const g = G.find(x=>x.id===d.id);
+    const tableId = d.over.dataset.table || null;
+    if(g && (g.table_id||null)!==tableId) assign(d.id,tableId);
+  }
+}
+document.addEventListener("pointerup",endDrag);
+document.addEventListener("pointercancel",endDrag);
+document.addEventListener("click",e=>{
+  if(suppressClick){ e.preventDefault(); e.stopPropagation(); return; }
+},true);
+document.addEventListener("click",e=>{
+  const pick=e.target.closest("[data-pick]");
+  if(pick){ picked = picked===pick.dataset.pick ? null : pick.dataset.pick; render(); return; }
+  const un=e.target.closest("[data-unassign]");
+  if(un){ assign(un.dataset.unassign,null); return; }
+  const card=e.target.closest("[data-table]");
+  if(card && picked && !e.target.closest("button,select")){
+    const g=G.find(x=>x.id===picked);
+    if(g && g.table_id===card.dataset.table){ picked=null; render(); return; }
+    assign(picked,card.dataset.table);
+  }
+});
+$("pickCancel").onclick = () => { picked = null; render(); };
+document.addEventListener("keydown",e=>{ if(e.key==="Escape" && picked){ picked=null; render(); } });
+document.addEventListener("change",e=>{
+  const add=e.target.closest("[data-add-table]");
+  if(add && add.value){ add.disabled=true; assign(add.value,add.dataset.addTable); return; }
+  const select=e.target.closest("[data-assignment]");
+  if(select){ select.disabled=true; assign(select.dataset.assignment,select.value); }
 });
 document.addEventListener("click",e=>{ const b = e.target.closest("[data-a]"); if(!b||b.tagName==="SELECT"||b.type==="checkbox") return; const a = b.dataset.a;
   if(a==="dt"){const t=T.find(x=>x.id===b.dataset.id);if(t&&confirm("¿Eliminar la mesa "+t.name+"?")) run(sb.from("event_tables").delete().eq("id",t.id));return;}
