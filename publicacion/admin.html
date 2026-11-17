@@ -149,7 +149,7 @@ body.dragging,body.dragging *{cursor:grabbing!important;user-select:none;-webkit
     <div class="card"><h3 style="margin-top:0">Invitaciones</h3>
       <p>La respuesta se guarda al confirmar. WhatsApp es opcional; el panel no puede verificar si el mensaje se envió.</p>
       <form class="row" id="gf"><input id="gn" placeholder="Nombre de la invitación" required><button>Agregar invitación</button></form>
-      <div class="scroll"><table><thead><tr><th>Invitación</th><th>Estado</th><th>Asistentes</th><th>Mesa asignada</th><th>Enlace</th><th>QR</th><th></th></tr></thead><tbody id="gb"></tbody></table></div>
+      <div class="scroll"><table><thead><tr><th>Invitación</th><th>Estado</th><th>Asistentes</th><th>Enlace</th><th>QR</th><th></th></tr></thead><tbody id="gb"></tbody></table></div>
     </div>
   </div>
 </div></div>
@@ -206,7 +206,6 @@ function render(){
   $("pickHint").hidden = !pg;
   if(pg) $("pickText").textContent = `Toca la mesa para sentar a «${pg.name}».`;
   $("gb").innerHTML = G.map(g=>`<tr><td>${esc(g.name)}</td><td><span class="state ${g.status}">${statusLabel(g)}</span></td><td>${g.status==="confirmado"?people(g):"—"}</td>
-    <td><select data-assignment="${g.id}" aria-label="Asignar mesa a ${esc(g.name)}"><option value="">Sin asignar</option>${T.map(t=>`<option value="${t.id}"${g.table_id===t.id?" selected":""}>${esc(t.name)}</option>`).join("")}</select></td>
     <td><button class="g" data-a="cp" data-id="${g.id}">Copiar enlace</button></td>
     <td><button class="g" data-a="qr" data-id="${g.id}">QR</button></td>
     <td><button class="g" data-a="dg" data-id="${g.id}" aria-label="Eliminar invitación de ${esc(g.name)}">🗑</button></td></tr>`).join("");
@@ -322,9 +321,7 @@ $("pickCancel").onclick = () => { picked = null; render(); };
 document.addEventListener("keydown",e=>{ if(e.key==="Escape" && picked){ picked=null; render(); } });
 document.addEventListener("change",e=>{
   const add=e.target.closest("[data-add-table]");
-  if(add && add.value){ add.disabled=true; assign(add.value,add.dataset.addTable); return; }
-  const select=e.target.closest("[data-assignment]");
-  if(select){ select.disabled=true; assign(select.dataset.assignment,select.value); }
+  if(add && add.value){ add.disabled=true; assign(add.value,add.dataset.addTable); }
 });
 document.addEventListener("click",e=>{ const b = e.target.closest("[data-a]"); if(!b||b.tagName==="SELECT"||b.type==="checkbox") return; const a = b.dataset.a;
   if(a==="dt"){const t=T.find(x=>x.id===b.dataset.id);if(t&&confirm("¿Eliminar la mesa "+t.name+"?")) run(sb.from("event_tables").delete().eq("id",t.id));return;}
